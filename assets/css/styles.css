@@ -930,7 +930,7 @@ img {
   position: fixed;
   right: 1rem;
   bottom: -20%;
-  background-color: var(--first-color);
+  background-color: var(--first-color-lighter);
   opacity: .8;
   padding: 0 .3rem;
   border-radius: .4rem;
@@ -944,7 +944,7 @@ img {
 
 .scrollup__icon {
   font-size: 1.5rem;
-  color: #FFF;
+  color: #000;
 }
 
 /* Show scroll */
