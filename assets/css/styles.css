@@ -72,7 +72,7 @@
 /*========== Variables Dark theme ==========*/
 body.dark-theme {
   /* HSL color mode */
-    --first-color: hsl(var(--hue-color), 69%, 100%);
+    --first-color: hsl(var(--hue-color), 69%, 60%);
     --first-color-second: hsl(var(--hue-color), 30%, 8%);
     --title-color: hsl(var(--hue-color), 8%, 95%);
     --text-color: hsl(var(--hue-color), 8%, 75%);
@@ -83,8 +83,9 @@ body.dark-theme {
     --scroll-thumb-color: hsl(var(--hue-color), 12%, 36%);
 }
 
-body.dark-theme .button {
-  color: #000;
+body.dark-theme .skills__subtitle {
+  --first-color: hsl(var(--hue-color), 69%, 90%);
+  color: var(--first-color);
 }
 
 /*========== Button Dark/Light ==========*/
