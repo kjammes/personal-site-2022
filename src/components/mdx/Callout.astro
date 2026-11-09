@@ -1,0 +1,40 @@
+---
+interface Props {
+  kind?: 'note' | 'tip' | 'warn';
+  title?: string;
+}
+const { kind = 'note', title } = Astro.props;
+const colour = { note: 'var(--accent)', tip: 'var(--accent)', warn: 'var(--amber)' }[kind];
+// Screen readers and colour-blind readers get the kind as a word, not just a border colour.
+const kindLabel = { note: 'Note', tip: 'Tip', warn: 'Warning' }[kind];
+---
+
+<aside class="callout" style={`--c:${colour}`} aria-label={title ? `${kindLabel}: ${title}` : kindLabel}>
+  <p class="title"><span class="kind">{kindLabel}{title && ':'}</span>{title && ` ${title}`}</p>
+  <slot />
+</aside>
+
+<style>
+  .callout {
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--c);
+    border-radius: 4px;
+    background: var(--bg-panel);
+    font-size: 0.9rem;
+  }
+  .title {
+    margin: 0 0 0.25rem;
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+  .kind {
+    color: var(--c);
+  }
+  .callout > :global(p:last-child) {
+    margin-bottom: 0;
+  }
+  .callout > :global(p:first-child) {
+    margin-top: 0;
+  }
+</style>

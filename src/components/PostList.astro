@@ -1,0 +1,78 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  posts: CollectionEntry<'blog'>[];
+}
+const { posts } = Astro.props;
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+---
+
+{
+  posts.length === 0 ? (
+    <p class="muted">First articles are on the way. Subscribe to the <a href="/rss.xml">RSS feed</a> to catch them.</p>
+  ) : (
+    <ul class="posts">
+      {posts.map((p) => (
+        <li>
+          <time datetime={p.data.pubDate.toISOString()}>{iso(p.data.pubDate)}</time>
+          <div>
+            <a class="plain" href={`/blog/${p.id}`}>{p.data.title}</a>
+            {p.data.youtubeId && <span class="badge">video</span>}
+            {p.data.draft && <span class="badge draft">draft</span>}
+            <p class="muted">{p.data.description}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+<style>
+  .posts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    display: grid;
+    grid-template-columns: 11ch 1fr;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  li:first-child {
+    padding-top: 0;
+  }
+  time {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+    line-height: 1.9;
+  }
+  a {
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+  a:hover {
+    color: var(--accent);
+  }
+  p {
+    margin: 0.25rem 0 0;
+    font-size: var(--fs-sm);
+  }
+  .badge {
+    margin-left: 1ch;
+    padding: 0 0.6ch;
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+    vertical-align: 2px;
+  }
+  @media (max-width: 560px) {
+    li {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+</style>

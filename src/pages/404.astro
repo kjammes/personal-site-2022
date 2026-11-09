@@ -1,0 +1,23 @@
+---
+import Base from '@/layouts/Base.astro';
+---
+
+<Base title="Not found" noindex>
+  <div class="container narrow wrap">
+    <p class="code">404</p>
+    <h1 class="h">This page does not exist</h1>
+    <p>If you followed a link to an old blog post, try the <a href="/blog">blog index</a>. Otherwise head back <a href="/">home</a>.</p>
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 5rem;
+  }
+  .code {
+    margin: 0 0 1rem;
+    color: var(--accent);
+    font-size: 2.5rem;
+    font-weight: 700;
+  }
+</style>

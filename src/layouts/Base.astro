@@ -1,0 +1,35 @@
+---
+import BaseHead from '@/components/BaseHead.astro';
+import Header from '@/components/Header.astro';
+import Footer from '@/components/Footer.astro';
+
+type Props = import('astro/types').ComponentProps<typeof BaseHead>;
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead {...props} />
+  </head>
+  <body>
+    <a class="skip-link plain" href="#main">Skip to main content</a>
+    <Header />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+    <script>
+      // Wide Markdown tables scroll inside a keyboard-focusable wrapper instead of breaking the page on phones.
+      document.querySelectorAll('.prose table').forEach((table) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'table-scroll';
+        wrap.tabIndex = 0;
+        wrap.setAttribute('role', 'region');
+        wrap.setAttribute('aria-label', 'Table, scrolls sideways');
+        table.replaceWith(wrap);
+        wrap.append(table);
+      });
+    </script>
+  </body>
+</html>

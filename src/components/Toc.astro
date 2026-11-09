@@ -1,0 +1,88 @@
+---
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+const items = Astro.props.headings.filter((h) => h.depth === 2 || h.depth === 3);
+---
+
+{
+  items.length > 0 && (
+    <nav class="toc" aria-label="Table of contents">
+      <p class="label">Table of contents</p>
+      <ul>
+        {items.map((h) => (
+          <li class={`d${h.depth}`}>
+            <a class="plain" href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
+<script>
+  // Highlight the section currently in view.
+  const links = new Map<string, HTMLAnchorElement>();
+  document.querySelectorAll<HTMLAnchorElement>('.toc a').forEach((a) => links.set(decodeURIComponent(a.hash.slice(1)), a));
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        links.forEach((a) => a.removeAttribute('aria-current'));
+        links.get(e.target.id)?.setAttribute('aria-current', 'location');
+      }
+    },
+    { rootMargin: '-10% 0px -75% 0px' },
+  );
+  links.forEach((_, id) => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+</script>
+
+<style>
+  .toc {
+    font-size: var(--fs-sm);
+  }
+  .label {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  li {
+    position: relative;
+    margin: 0.45rem 0;
+    padding-left: 2ch;
+    line-height: 1.5;
+  }
+  li::before {
+    content: '*';
+    content: '*' / '';
+    position: absolute;
+    left: 0;
+    color: var(--muted);
+  }
+  li.d3 {
+    margin-left: 2ch;
+  }
+  a {
+    color: var(--text);
+  }
+  a:hover,
+  a[aria-current='location'] {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  /* Current section: bold and underlined, not just a colour change. */
+  a[aria-current='location'] {
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+</style>

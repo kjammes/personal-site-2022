@@ -1,0 +1,118 @@
+---
+import { render } from 'astro:content';
+import Base from '@/layouts/Base.astro';
+import Toc from '@/components/Toc.astro';
+import AvailabilityCard from '@/components/AvailabilityCard.astro';
+import Hl from '@/components/mdx/Hl.astro';
+import Callout from '@/components/mdx/Callout.astro';
+import { getCaseStudies } from '@/lib/content';
+
+export async function getStaticPaths() {
+  const items = await getCaseStudies();
+  return items.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+const { title, summary, role, period, stack, metrics, draft } = entry.data;
+---
+
+<Base title={title} description={summary} type="article" noindex={draft}>
+  <div class="container layout">
+    <article>
+      <nav class="crumbs" aria-label="Breadcrumb"><a href="/work">work</a></nav>
+      <h1>{title}</h1>
+      <p class="meta muted">{role} <span class="muted" aria-hidden="true">|</span> {period}</p>
+      {
+        metrics.length > 0 && (
+          <dl class="metrics panel">
+            {metrics.map((m) => (
+              <div>
+                <dt>{m.label}</dt>
+                <dd>{m.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )
+      }
+      {stack.length > 0 && <p class="meta"><span class="muted">Stack:</span> {stack.join(', ')}</p>}
+      <div class="prose">
+        <Content components={{ Hl, Callout }} />
+      </div>
+    </article>
+    <aside>
+      <div class="sticky">
+        <Toc headings={headings} />
+        <AvailabilityCard />
+      </div>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) var(--toc-width);
+    justify-content: space-between;
+    gap: 4rem;
+    padding-top: 2.5rem;
+  }
+  .crumbs {
+    margin: 0 0 1.5rem;
+    font-size: var(--fs-sm);
+  }
+  h1 {
+    margin: 0 0 0.75rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent);
+    color: var(--text-strong);
+    font-size: clamp(1.2rem, 1rem + 1vw, 1.5rem);
+    line-height: 1.45;
+    overflow-wrap: break-word;
+  }
+  .meta {
+    margin: 0.25rem 0;
+    font-size: var(--fs-sm);
+  }
+  .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2.5rem;
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+  }
+  .metrics div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .metrics dt {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+  .metrics dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .prose {
+    margin-top: 2rem;
+  }
+  .sticky {
+    position: sticky;
+    top: 5rem;
+    display: grid;
+    gap: 2rem;
+  }
+  @media (max-width: 960px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    aside :global(.toc) {
+      display: none;
+    }
+    .sticky {
+      position: static;
+    }
+  }
+</style>

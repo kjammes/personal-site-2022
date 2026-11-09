@@ -1,0 +1,25 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Old Hashnode blog: every post keeps its slug under /blog.
+# Requires blog.jayeshkarli.dev to be added as a domain alias on this Netlify site
+# and its DNS CNAME repointed from Hashnode to Netlify.
+[[redirects]]
+  from = "https://blog.jayeshkarli.dev/*"
+  to = "https://www.jayeshkarli.dev/blog/:splat"
+  status = 301
+  force = true
+
+[[headers]]
+  for = "/_astro/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/studio/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"

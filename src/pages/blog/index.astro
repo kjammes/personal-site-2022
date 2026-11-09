@@ -1,0 +1,49 @@
+---
+import Base from '@/layouts/Base.astro';
+import PostList from '@/components/PostList.astro';
+import { getPosts, slugifyTag } from '@/lib/content';
+
+const posts = await getPosts();
+const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+---
+
+<Base
+  title="Blog"
+  description="Interactive, animated deep dives into backend systems, databases, distributed data and AI-assisted engineering by Jayesh Karli."
+>
+  <div class="container narrow wrap">
+    <h1 class="h">Blog</h1>
+    <p class="muted intro">
+      Deep dives into backend systems and data at scale. Most articles have interactive visualizations, and many have a
+      companion video on <a href="https://www.youtube.com/@JKCD">YouTube</a>.
+    </p>
+    {
+      tags.length > 0 && (
+        <ul class="tags" aria-label="Browse by tag">
+          {tags.map((t) => (
+            <li><a href={`/blog/tags/${slugifyTag(t)}`}><span aria-hidden="true">#</span>{t}</a></li>
+          ))}
+        </ul>
+      )
+    }
+    <PostList posts={posts} />
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 3rem;
+  }
+  .intro {
+    margin: 0 0 1.5rem;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin: 0 0 2.5rem;
+    padding: 0;
+    list-style: none;
+    font-size: var(--fs-sm);
+  }
+</style>

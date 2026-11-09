@@ -1,0 +1,34 @@
+---
+import { site } from '@/data/site';
+const contactHref = site.bookingUrl || `mailto:${site.email}?subject=Project%20enquiry`;
+---
+
+<aside class="card">
+  <p class="title">Building a SaaS product or scaling one?</p>
+  <p class="body">I take on a small number of freelance projects alongside full-time work.</p>
+  <a class="go" href={contactHref}>{site.bookingUrl ? 'Book a call' : 'Get in touch'} <span aria-hidden="true">&rarr;</span></a>
+</aside>
+
+<style>
+  .card {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-panel);
+    font-size: var(--fs-sm);
+  }
+  .title {
+    margin: 0 0 0.5rem;
+    color: var(--text-strong);
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .body {
+    margin: 0 0 0.75rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .go {
+    font-weight: 700;
+  }
+</style>

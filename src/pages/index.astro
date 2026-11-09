@@ -1,0 +1,442 @@
+---
+import Base from '@/layouts/Base.astro';
+import { Picture } from 'astro:assets';
+import PostList from '@/components/PostList.astro';
+import portrait from '@/assets/portrait.jpg';
+import { education, experience, projects, site, stack } from '@/data/site';
+import { formatMonth, leetcodeSolved, yearsSince } from '@/lib/stats';
+import { getPosts } from '@/lib/content';
+
+const coding = yearsSince(site.codingStart);
+const professional = yearsSince(site.careerStart);
+const solved = await leetcodeSolved();
+const posts = (await getPosts()).slice(0, 3);
+const contactHref = site.bookingUrl || `mailto:${site.email}`;
+
+const stats = [
+  { value: `${professional}+`, label: 'years shipping production systems' },
+  { value: `${coding}+`, label: 'years writing software' },
+  ...(solved ? [{ value: String(solved), label: 'LeetCode problems solved' }] : []),
+];
+---
+
+<Base>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="container hero-grid">
+      <div class="hero-photo">
+        <Picture
+          src={portrait}
+          formats={['avif', 'webp']}
+          widths={[320, 480, 640, 880]}
+          sizes="(max-width: 47.5rem) 14rem, 20rem"
+          alt={`${site.name} smiling with arms crossed, wearing a brown corduroy jacket over a white t-shirt`}
+          loading="eager"
+          fetchpriority="high"
+        />
+      </div>
+      <div class="hero-text">
+      <p class="status"><span class="dot" aria-hidden="true"></span> open to senior roles and select freelance projects</p>
+      <h1 id="hero-title">
+        <span class="name">{site.name}</span>
+        <span class="headline">{site.headline}</span>
+      </h1>
+
+      <dl class="stats">
+        {
+          stats.map((s) => (
+            <div>
+              <dt>{s.label}</dt>
+              <dd>{s.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+
+      </div>
+
+      <div class="paths">
+        <a class="path plain" href="/work">
+          <span class="q">Hiring?</span>
+          <span class="a">Case studies of systems I have built, the numbers behind them, and my resume.</span>
+          <span class="go">see my work <span aria-hidden="true">&rarr;</span></span>
+        </a>
+        <a class="path plain" href="/services">
+          <span class="q">Building a product?</span>
+          <span class="a">I design and build scalable SaaS products end to end, from first schema to production.</span>
+          <span class="go">how I can help <span aria-hidden="true">&rarr;</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div class="container sections">
+    <section aria-labelledby="what">
+      <h2 class="h" id="what">What I do</h2>
+      <ul class="star narrow">
+        <li><strong>Backend systems that hold up under load.</strong> Spring Boot and Node.js services, event pipelines on Kafka, search on Elasticsearch, and the data models underneath them.</li>
+        <li><strong>SaaS products, end to end.</strong> Auth, billing, multi-tenancy, background jobs, observability, and the dull details that decide whether a product survives its first big customer.</li>
+        <li><strong>AI-accelerated delivery.</strong> I use coding agents and LLM tooling to move fast, with tests, reviews and evals so speed never costs reliability.</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="writing">
+      <div class="section-head">
+        <h2 class="h" id="writing">Recent writing</h2>
+        <a href="/blog" class="more">all articles <span aria-hidden="true">&rarr;</span></a>
+      </div>
+      <div class="narrow"><PostList posts={posts} /></div>
+    </section>
+
+    <div class="two">
+      <section aria-labelledby="exp">
+        <h2 class="h" id="exp">Experience</h2>
+        <ol class="timeline">
+          {
+            experience.map((job) => (
+              <li>
+                <span class="when muted">
+                  {formatMonth(job.start)} to {job.end ? formatMonth(job.end) : 'now'}
+                </span>
+                <span class="what">
+                  <strong>{job.title}</strong> <span class="muted">at</span> {job.company}
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+        <h3 class="sub">Education</h3>
+        <ol class="timeline">
+          {
+            education.map((e) => (
+              <li>
+                <span class="when muted">{e.period}</span>
+                <span class="what">
+                  <strong>{e.title}</strong> <span class="muted">at</span> {e.place}
+                </span>
+              </li>
+            ))
+          }
+        </ol>
+        <p class="resume"><a class="btn" href={site.resumePath}>download resume (pdf)</a></p>
+      </section>
+      <section aria-labelledby="stack">
+        <h2 class="h" id="stack">Stack</h2>
+        <dl class="stack">
+          {
+            stack.map((s) => (
+              <div>
+                <dt>{s.group}</dt>
+                <dd>{s.items.join(', ')}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+    </div>
+
+    <section aria-labelledby="oss">
+      <h2 class="h" id="oss">Open source</h2>
+      <ul class="cards">
+        {
+          projects.map((p) => (
+            <li class="panel">
+              <a class="plain" href={p.href}>{p.name}</a>
+              <p class="muted">{p.summary}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="contact" class="contact panel">
+      <h2 class="h" id="contact">Get in touch</h2>
+      <p>
+        Hiring for a senior backend role, or have a product to build? Email <a href={`mailto:${site.email}`}>{site.email}</a> or
+        find me on <a href={site.socials.linkedin}>LinkedIn</a>.
+      </p>
+      <p><a class="btn solid" href={contactHref}>{site.bookingUrl ? 'book a call' : 'send an email'}</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .hero {
+    padding: 4.5rem 0 4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 18rem;
+    grid-template-areas:
+      'text photo'
+      'paths paths';
+    align-items: center;
+    column-gap: 3.5rem;
+  }
+  .hero-text {
+    grid-area: text;
+  }
+  .hero-photo {
+    grid-area: photo;
+  }
+  .paths {
+    grid-area: paths;
+  }
+  .hero-photo :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    /* A thin brand-red offset frame; purely decorative. */
+    box-shadow: 10px 10px 0 -1px var(--bg), 10px 10px 0 0 var(--red);
+  }
+  .status {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 1ch;
+    margin: 0 0 2rem;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+  .dot {
+    flex: none;
+    margin-top: 0.6em;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+  h1 {
+    display: grid;
+    gap: 1rem;
+    max-width: 48rem;
+    margin: 0;
+  }
+  .name {
+    color: var(--red);
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .headline {
+    color: var(--text-strong);
+    font-size: clamp(1.35rem, 3.2vw, 2rem);
+    font-weight: 700;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 3rem;
+    margin: 2.5rem 0 0;
+  }
+  .stats div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .stats dt {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+  .stats dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .paths {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    max-width: 52rem;
+    margin-top: 3rem;
+  }
+  .path {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg-panel);
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .path:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+  .q {
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+  .a {
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+  }
+  .go {
+    color: var(--accent);
+    font-size: var(--fs-sm);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .sections {
+    display: grid;
+    gap: 4.5rem;
+    padding-top: 4rem;
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    max-width: var(--measure);
+  }
+  .section-head {
+    flex-wrap: wrap;
+    gap: 0 1rem;
+  }
+  .more {
+    font-size: var(--fs-sm);
+  }
+  .two {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 3rem;
+  }
+  .sub {
+    margin: 2rem 0 1rem;
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+  .timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 1px solid var(--border-strong);
+  }
+  .timeline li {
+    position: relative;
+    display: grid;
+    padding: 0 0 1.1rem 1.25rem;
+  }
+  .timeline li::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 0.55rem;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--red);
+  }
+  .timeline li:not(:first-child)::before {
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+  }
+  .when {
+    font-size: var(--fs-sm);
+  }
+  .resume {
+    margin: 1.5rem 0 0;
+  }
+  .stack {
+    margin: 0;
+  }
+  .stack div {
+    display: grid;
+    grid-template-columns: 9ch 1fr;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: var(--fs-sm);
+  }
+  .stack dt {
+    color: var(--muted);
+  }
+  .stack dd {
+    margin: 0;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .cards li {
+    padding: 1rem 1.1rem;
+  }
+  .cards a {
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+  .cards a:hover {
+    color: var(--accent);
+  }
+  .cards p {
+    margin: 0.35rem 0 0;
+    font-size: var(--fs-sm);
+    line-height: 1.6;
+  }
+  .contact {
+    max-width: 48rem;
+    padding: 1.5rem;
+  }
+  .contact p {
+    margin: 0 0 1rem;
+  }
+  .contact p:last-child {
+    margin: 0;
+  }
+  @media (max-width: 60rem) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr) 14rem;
+      column-gap: 2.5rem;
+    }
+  }
+  /* Phones and small tablets: a square head-and-shoulders crop above the text. */
+  @media (max-width: 47.5rem) {
+    .hero {
+      padding: 2rem 0 2.5rem;
+    }
+    .hero-grid {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'photo'
+        'text'
+        'paths';
+    }
+    .hero-photo {
+      width: 9rem;
+      aspect-ratio: 1;
+      margin-bottom: 1.75rem;
+      overflow: hidden;
+      border: 1px solid var(--border-strong);
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--red);
+    }
+    /* Zoom into the face so it reads at avatar size. */
+    .hero-photo :global(img) {
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+      transform: scale(1.5);
+      transform-origin: 50% 4%;
+    }
+    .paths,
+    .two {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .stats {
+      gap: 1.25rem 2rem;
+    }
+    .stack div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+  }
+</style>
