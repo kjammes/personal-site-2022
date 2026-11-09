@@ -75,7 +75,8 @@ The visual reference is PlanetScale's B-tree article: a narrow text column, a st
 | URL | Source | Notes |
 | --- | --- | --- |
 | `/` | `pages/index.astro` | Hero, two audience paths, stats, recent posts, experience, stack, contact |
-| `/blog` | `pages/blog/index.astro` | All posts with a tag list |
+| `/blog` | `pages/blog/index.astro` | Latest 10 posts and a tag list. Older posts load on scroll |
+| `/blog/feed/<slug>.json` | `pages/blog/feed/[...cursor].json.ts` | Cursor pages for infinite scroll: the posts after `<slug>` and the next cursor |
 | `/blog/<slug>` | `pages/blog/[...slug].astro` | Article layout. Slug is the MDX file name |
 | `/blog/tags/<tag>` | `pages/blog/tags/[tag].astro` | One page per tag |
 | `/work` | `pages/work/index.astro` | Case study list, or a placeholder when there are none |

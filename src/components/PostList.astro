@@ -3,8 +3,10 @@ import type { CollectionEntry } from 'astro:content';
 
 interface Props {
   posts: CollectionEntry<'blog'>[];
+  /** Cursor for the next page. When set, more posts load from /blog/feed/<cursor>.json as the reader scrolls. */
+  next?: string | null;
 }
-const { posts } = Astro.props;
+const { posts, next = null } = Astro.props;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 ---
 
@@ -12,21 +14,125 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
   posts.length === 0 ? (
     <p class="muted">First articles are on the way. Subscribe to the <a href="/rss.xml">RSS feed</a> to catch them.</p>
   ) : (
-    <ul class="posts">
-      {posts.map((p) => (
-        <li>
-          <time datetime={p.data.pubDate.toISOString()}>{iso(p.data.pubDate)}</time>
-          <div>
-            <a class="plain" href={`/blog/${p.id}`}>{p.data.title}</a>
-            {p.data.youtubeId && <span class="badge">video</span>}
-            {p.data.draft && <span class="badge draft">draft</span>}
-            <p class="muted">{p.data.description}</p>
+    <div data-post-list data-next={next ?? undefined}>
+      <ul class="posts">
+        {posts.map((p) => (
+          <li>
+            <time datetime={p.data.pubDate.toISOString()}>{iso(p.data.pubDate)}</time>
+            <div>
+              <a class="plain" href={`/blog/${p.id}`}>{p.data.title}</a>
+              {p.data.youtubeId && <span class="badge">video</span>}
+              {p.data.draft && <span class="badge draft">draft</span>}
+              <p class="muted">{p.data.description}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {next && (
+        <>
+          {/* Same markup as the items above, so loaded posts pick up the scoped styles. */}
+          <template>
+            <li>
+              <time />
+              <div>
+                <a class="plain" />
+                <span class="badge" data-video>video</span>
+                <span class="badge draft" data-draft>draft</span>
+                <p class="muted" />
+              </div>
+            </li>
+          </template>
+          <div class="more" hidden>
+            <button type="button" class="btn">Load more posts</button>
           </div>
-        </li>
-      ))}
-    </ul>
+          <p class="sr-only" role="status" />
+          <noscript>
+            <p class="muted fallback">Showing the latest posts. Browse by tag above or use the <a href="/rss.xml">RSS feed</a> for older ones.</p>
+          </noscript>
+        </>
+      )}
+    </div>
   )
 }
+
+<script>
+  interface Summary {
+    id: string;
+    title: string;
+    description: string;
+    pubDate: string;
+    video: boolean;
+    draft: boolean;
+  }
+
+  const feedUrl = (cursor: string) => `/blog/feed/${cursor.split('/').map(encodeURIComponent).join('/')}.json`;
+
+  function setup(root: HTMLElement) {
+    let next = root.dataset.next;
+    const list = root.querySelector('ul')!;
+    const template = root.querySelector('template');
+    const more = root.querySelector<HTMLElement>('.more');
+    const button = more?.querySelector('button');
+    const status = root.querySelector('[role="status"]');
+    if (!next || !template || !more || !button || !status) return;
+
+    const render = (p: Summary) => {
+      const li = (template.content.firstElementChild as HTMLElement).cloneNode(true) as HTMLElement;
+      const time = li.querySelector('time')!;
+      time.dateTime = p.pubDate;
+      time.textContent = p.pubDate.slice(0, 10);
+      const link = li.querySelector('a')!;
+      link.href = `/blog/${p.id}`;
+      link.textContent = p.title;
+      li.querySelector('p')!.textContent = p.description;
+      if (!p.video) li.querySelector('[data-video]')!.remove();
+      if (!p.draft) li.querySelector('[data-draft]')!.remove();
+      return li;
+    };
+
+    let loading = false;
+    const load = async () => {
+      if (loading || !next) return;
+      loading = true;
+      button.disabled = true;
+      button.textContent = 'Loading…';
+      try {
+        const res = await fetch(feedUrl(next));
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const page: { posts: Summary[]; next: string | null } = await res.json();
+        list.append(...page.posts.map(render));
+        next = page.next ?? undefined;
+        status.textContent = `Loaded ${page.posts.length} more posts.`;
+        if (!next) {
+          observer.disconnect();
+          more.remove();
+          return;
+        }
+        button.textContent = 'Load more posts';
+        // If the sentinel is still on screen (short page, tall window), observing again fires a fresh check.
+        observer.unobserve(more);
+        observer.observe(more);
+      } catch {
+        // Stop auto-loading so a broken network does not cause a retry loop. The button still works.
+        observer.disconnect();
+        status.textContent = 'Could not load more posts.';
+        button.textContent = 'Retry';
+      } finally {
+        loading = false;
+        button.disabled = false;
+      }
+    };
+
+    const observer = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && load(), {
+      rootMargin: '0px 0px 600px 0px',
+    });
+    more.hidden = false;
+    observer.observe(more);
+    button.addEventListener('click', load);
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-post-list]').forEach(setup);
+</script>
 
 <style>
   .posts {
@@ -68,6 +174,17 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
     color: var(--muted);
     font-size: var(--fs-xs);
     vertical-align: 2px;
+  }
+  .more {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0 0;
+  }
+  .more[hidden] {
+    display: none;
+  }
+  .fallback {
+    margin-top: 1.5rem;
   }
   @media (max-width: 560px) {
     li {

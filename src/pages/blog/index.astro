@@ -1,10 +1,12 @@
 ---
 import Base from '@/layouts/Base.astro';
 import PostList from '@/components/PostList.astro';
-import { getPosts, slugifyTag } from '@/lib/content';
+import { getPosts, pageAfter, slugifyTag } from '@/lib/content';
 
 const posts = await getPosts();
 const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+// The first page is the posts "after" index -1.
+const first = pageAfter(posts, -1);
 ---
 
 <Base
@@ -26,7 +28,7 @@ const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
         </ul>
       )
     }
-    <PostList posts={posts} />
+    <PostList posts={first.posts} next={first.next} />
   </div>
 </Base>
 
