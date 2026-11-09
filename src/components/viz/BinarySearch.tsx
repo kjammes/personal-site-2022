@@ -64,6 +64,58 @@ const GAP = 6;
 /** Room above the cells for the text labels that mark the middle and found cells. */
 const TOP = 22;
 
+/** Vertical (narrow screen) layout: one row per value inside a fixed-height window. */
+const ROW = 44;
+const ROW_CELL = 38;
+const VIEW_H = 360;
+/** Below this zoom the values get too small to read, so the camera follows mid instead of fitting the range. */
+const MIN_ZOOM = 0.55;
+const MAX_ZOOM = 1.15;
+/** Height of the edge fade. Rows are kept clear of it, so the first and last rows are never cut off. */
+const FADE = 12;
+const PAD = FADE + 6;
+const AVAIL_H = VIEW_H - 2 * PAD;
+
+type Camera = { scale: number; y: number };
+
+/**
+ * Frame the rows that might still hold the target. As the range halves, the camera zooms in,
+ * so the reader sees the whole array at the start and a close-up of the answer at the end.
+ */
+function camera(n: number, step: Step | undefined, overview: boolean): Camera {
+  const content = n * ROW;
+  const fitAll = Math.min(1, AVAIL_H / content);
+  if (overview || !step) return { scale: fitAll, y: (VIEW_H - content * fitAll) / 2 };
+
+  const clampRow = (r: number) => Math.min(n - 1, Math.max(0, r));
+  let a: number;
+  let b: number;
+  let focus: number;
+  if (step.cmp === 'miss') {
+    // lo has passed hi: frame the gap where the target would have been.
+    a = clampRow(Math.min(step.lo, step.hi));
+    b = clampRow(Math.max(step.lo, step.hi));
+    focus = (a + b) / 2;
+  } else if (step.cmp === 'eq') {
+    a = b = focus = step.mid;
+  } else {
+    a = step.lo;
+    b = step.hi;
+    focus = (a + b) / 2;
+  }
+
+  const span = (b - a + 1) * ROW;
+  const raw = AVAIL_H / span;
+  const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, raw));
+  if (raw < MIN_ZOOM && step.cmp !== 'miss') focus = step.mid;
+
+  const h = content * scale;
+  if (h <= AVAIL_H) return { scale, y: (VIEW_H - h) / 2 };
+  const y = VIEW_H / 2 - (focus + 0.5) * ROW * scale;
+  // Never pull the first or last row into the fade.
+  return { scale, y: Math.min(PAD, Math.max(VIEW_H - PAD - h, y)) };
+}
+
 export default function BinarySearch({ size = 15, seed = 7, initialTarget, script }: Props) {
   const speed = useSpeed();
   const [values, setValues] = useState(() => sortedValues(size, seed));
@@ -71,6 +123,7 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
   const [steps, setSteps] = useState<Step[]>([]);
   const [cursor, setCursor] = useState(-1);
   const [playing, setPlaying] = useState(false);
+  const [overview, setOverview] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const step = cursor >= 0 ? steps[cursor] : undefined;
@@ -87,6 +140,8 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
   const start = useCallback(
     (t: number, autoplay: boolean) => {
       clearTimeout(timer.current);
+      // A new search always follows the camera, so the zoom-in is never hidden by a leftover overview.
+      setOverview(false);
       setSteps(plan(values, t));
       setCursor(0);
       setPlaying(autoplay);
@@ -129,6 +184,8 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
   const width = values.length * (CELL + GAP) - GAP;
   const height = TOP + CELL + 44;
   const transition = `${Math.round(scaled(260, speed))}ms`;
+  const cameraTransition = `${Math.round(scaled(650, speed))}ms`;
+  const cam = camera(values.length, step, overview);
 
   const cellState = useMemo(
     () => (i: number) => {
@@ -170,7 +227,9 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
 
   return (
     <VizFrame label="Interactive binary search over a sorted array" controls={controls} bare={!!script} minHeight={170}>
-      <div style={{ width: '100%', '--t': transition } as CSSProperties}>
+      <div className="bs-root" style={{ '--t': transition, '--cam': cameraTransition } as CSSProperties}>
+        {/* Wide layout. A container query swaps it for the vertical layout on narrow screens. */}
+        <div className="bs-h">
         <Scroller label="Sorted array">
         <svg
           viewBox={`-4 -4 ${width + 8} ${height + 8}`}
@@ -220,6 +279,50 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
           )}
         </svg>
         </Scroller>
+        </div>
+
+        {/* Narrow layout: rows stacked top to bottom, with a camera that follows the search. */}
+        <div className="bs-v">
+          <div className="bs-viewport" style={{ height: VIEW_H }}>
+            <div
+              className="bs-world"
+              role="img"
+              aria-label={`Sorted array: ${values.join(', ')}`}
+              style={{ height: values.length * ROW, transform: `translate(0, ${cam.y}px) scale(${cam.scale})` }}
+            >
+              {values.map((v, i) => {
+                const s = cellState(i);
+                return (
+                  <div key={i} className={`bs-row bs-${s}`} style={{ top: i * ROW, height: ROW_CELL }} aria-hidden="true">
+                    <span className="bs-row-index">{i}</span>
+                    <span className="bs-row-cell">{v}</span>
+                    <span className="bs-row-tag">{s === 'mid' ? '◀ mid' : s === 'found' ? '✓ found' : ''}</span>
+                  </div>
+                );
+              })}
+              {step && step.cmp !== 'miss' && (
+                <>
+                  {/* lo sits at the top of its row and hi at the bottom, so they never overlap when lo equals hi. */}
+                  <span className="bs-vmarker" style={{ transform: `translateY(${step.lo * ROW + 3}px)` }} aria-hidden="true">
+                    lo ▸
+                  </span>
+                  <span className="bs-vmarker" style={{ transform: `translateY(${step.hi * ROW + ROW_CELL - 17}px)` }} aria-hidden="true">
+                    hi ▸
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <button
+              type="button"
+              className="bs-zoom"
+              aria-pressed={overview}
+              onClick={() => setOverview((o) => !o)}
+            >
+            {overview ? 'Follow search' : 'Show whole array'}
+          </button>
+        </div>
+
         <p className="viz-status" aria-live="polite">
           {describe(step, values, target)}
           {step && (
@@ -243,6 +346,52 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
         .bs-found rect { fill: color-mix(in oklab, var(--green) 26%, var(--bg-raised)); stroke: var(--green); stroke-width: 4; }
         .bs-found text:not(.bs-index) { fill: var(--green); }
         .bs-marker { transition: transform var(--t); }
+
+        .bs-root { width: 100%; container-type: inline-size; }
+        .bs-v { display: none; }
+        @container (max-width: 599px) {
+          .bs-h { display: none; }
+          .bs-v { display: block; }
+        }
+        .bs-viewport {
+          position: relative; overflow: hidden; border-radius: 4px;
+          background: color-mix(in oklab, var(--bg-raised) 40%, transparent);
+          /* Fade the edges so it is clear the column continues past the window. */
+          mask-image: linear-gradient(transparent, #000 ${FADE}px, #000 calc(100% - ${FADE}px), transparent);
+        }
+        .bs-world {
+          position: relative; width: 100%; transform-origin: top center;
+          transition: transform var(--cam) cubic-bezier(.4, 0, .2, 1);
+        }
+        .bs-row {
+          position: absolute; left: 0; right: 0; display: grid; align-items: center;
+          grid-template-columns: 2.6rem 2rem minmax(0, 1fr) 4.6rem; gap: 0.5rem;
+        }
+        .bs-row-index { grid-column: 2; text-align: right; color: var(--muted); font: 400 12px var(--font); }
+        .bs-row-cell {
+          height: 100%; display: grid; place-items: center; border-radius: 5px;
+          background: var(--bg-raised); border: 1px solid var(--border-strong); color: var(--text);
+          font: 600 18px var(--font);
+          transition: background var(--t), border-color var(--t), opacity var(--t), color var(--t);
+        }
+        .bs-row-tag { font: 700 12px var(--font); white-space: nowrap; }
+        .bs-in .bs-row-cell { border-color: var(--accent); }
+        .bs-out .bs-row-cell { opacity: 0.45; border-style: dashed; }
+        .bs-mid .bs-row-cell { background: color-mix(in oklab, var(--purple) 26%, var(--bg-raised)); border: 3px solid var(--purple); color: var(--purple); }
+        .bs-mid .bs-row-tag { color: var(--purple); }
+        .bs-found .bs-row-cell { background: color-mix(in oklab, var(--green) 26%, var(--bg-raised)); border: 4px solid var(--green); color: var(--green); }
+        .bs-found .bs-row-tag { color: var(--green); }
+        .bs-vmarker {
+          position: absolute; top: 0; left: 0; width: 2.6rem; text-align: right;
+          color: var(--accent); font: 700 12px var(--font);
+          transition: transform var(--t);
+        }
+        .bs-zoom {
+          display: block; margin: 0.5rem auto 0; padding: 0.35rem 0.8rem; min-height: 2.75rem;
+          border: 1px solid var(--border-strong); border-radius: 4px;
+          background: var(--bg-panel); color: var(--text); font: 600 var(--fs-xs) var(--font); cursor: pointer;
+        }
+        .bs-zoom[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
       `}</style>
     </VizFrame>
   );
