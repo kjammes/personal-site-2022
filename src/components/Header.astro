@@ -22,7 +22,7 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
           ))
         }
         <li>
-          <a class="plain" href={site.resumePath}>resume<span class="sr-only"> (PDF)</span></a>
+          <a class="plain" href={site.resumeUrl} target="_blank" rel="noopener">resume</a>
         </li>
       </ul>
     </nav>

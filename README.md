@@ -14,7 +14,7 @@ npm run build    # type checks, then static build to dist/
 | --- | --- |
 | `src/data/site.ts` | Profile, experience, stack, projects, socials, booking link |
 | `src/content/blog/` | Articles (`.mdx`). `draft: true` keeps a post out of production |
-| `src/content/work/` | Case studies. Copy `template-case-study.mdx` to start one |
+| `src/content/work/` | Case studies, one per file. Copy an existing one to start a new one |
 | `src/components/viz/` | Interactive widgets, shared speed control, panel primitives |
 | `src/pages/studio/` | Full-screen scripted widget playback for video recording |
 | `src/styles/global.css` | Design tokens and prose styles |

@@ -3,7 +3,7 @@ import Base from '@/layouts/Base.astro';
 import { Picture } from 'astro:assets';
 import PostList from '@/components/PostList.astro';
 import portrait from '@/assets/portrait.jpg';
-import { education, experience, projects, site, stack } from '@/data/site';
+import { education, experience, site, stack } from '@/data/site';
 import { formatMonth, leetcodeSolved, yearsSince } from '@/lib/stats';
 import { getPosts } from '@/lib/content';
 
@@ -75,7 +75,7 @@ const stats = [
       <ul class="star narrow">
         <li><strong>Backend systems that hold up under load.</strong> Spring Boot and Node.js services, event pipelines on Kafka, search on Elasticsearch, and the data models underneath them.</li>
         <li><strong>SaaS products, end to end.</strong> Auth, billing, multi-tenancy, background jobs, observability, and the dull details that decide whether a product survives its first big customer.</li>
-        <li><strong>AI-accelerated delivery.</strong> I use coding agents and LLM tooling to move fast, with tests, reviews and evals so speed never costs reliability.</li>
+        <li><strong>AI-accelerated delivery.</strong> I use coding agents and LLM tooling to move fast while keeping the software reliable and the quality bar very high.</li>
       </ul>
     </section>
 
@@ -117,7 +117,7 @@ const stats = [
             ))
           }
         </ol>
-        <p class="resume"><a class="btn" href={site.resumePath}>download resume (pdf)</a></p>
+        <p class="resume"><a class="btn" href={site.resumeUrl} target="_blank" rel="noopener">view resume</a></p>
       </section>
       <section aria-labelledby="stack">
         <h2 class="h" id="stack">Stack</h2>
@@ -133,20 +133,6 @@ const stats = [
         </dl>
       </section>
     </div>
-
-    <section aria-labelledby="oss">
-      <h2 class="h" id="oss">Open source</h2>
-      <ul class="cards">
-        {
-          projects.map((p) => (
-            <li class="panel">
-              <a class="plain" href={p.href}>{p.name}</a>
-              <p class="muted">{p.summary}</p>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
 
     <section aria-labelledby="contact" class="contact panel">
       <h2 class="h" id="contact">Get in touch</h2>
@@ -358,29 +344,6 @@ const stats = [
   }
   .stack dd {
     margin: 0;
-  }
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
-    gap: 1rem;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .cards li {
-    padding: 1rem 1.1rem;
-  }
-  .cards a {
-    color: var(--text-strong);
-    font-weight: 700;
-  }
-  .cards a:hover {
-    color: var(--accent);
-  }
-  .cards p {
-    margin: 0.35rem 0 0;
-    font-size: var(--fs-sm);
-    line-height: 1.6;
   }
   .contact {
     max-width: 48rem;

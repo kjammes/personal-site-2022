@@ -35,7 +35,6 @@ The visual reference is PlanetScale's B-tree article: a narrow text column, a st
 ├── netlify.toml              Build command, Hashnode redirect, cache and noindex headers
 ├── tsconfig.json             Strict TS, React JSX, "@/*" path alias to src/
 ├── public/                   Copied to dist/ as is
-│   ├── JayeshKarli-Cv.pdf    Resume, linked from the header and homepage
 │   ├── favicon.png
 │   └── robots.txt            Disallows /studio/, points to the sitemap
 └── src/
@@ -75,7 +74,7 @@ The visual reference is PlanetScale's B-tree article: a narrow text column, a st
 
 | URL | Source | Notes |
 | --- | --- | --- |
-| `/` | `pages/index.astro` | Hero, two audience paths, stats, recent posts, experience, stack, open source, contact |
+| `/` | `pages/index.astro` | Hero, two audience paths, stats, recent posts, experience, stack, contact |
 | `/blog` | `pages/blog/index.astro` | All posts with a tag list |
 | `/blog/<slug>` | `pages/blog/[...slug].astro` | Article layout. Slug is the MDX file name |
 | `/blog/tags/<tag>` | `pages/blog/tags/[tag].astro` | One page per tag |
@@ -137,7 +136,7 @@ Schemas live in `src/content.config.ts`. Zod validates frontmatter at build time
 
 ### Profile data
 
-Everything about the person, rather than an article, lives in `src/data/site.ts`: name, role, headline, email, booking link, resume path, career start dates, LeetCode username, socials, `knowsAbout` topics, nav items, experience, education, stack and projects. Change the copy here, not in the pages.
+Everything about the person, rather than an article, lives in `src/data/site.ts`: name, role, headline, email, booking link, resume link, career start dates, LeetCode username, socials, `knowsAbout` topics, nav items, experience, education, stack and projects. Change the copy here, not in the pages.
 
 Setting `bookingUrl` switches every "send an email" and "get in touch" call to action to "book a call".
 
@@ -271,7 +270,7 @@ Performance choices that matter for ranking: no client JavaScript outside widget
 
 **Add a widget.** Create `src/components/viz/<Name>.tsx` following the widget contract. Import it in a post. Add it to the studio `getStaticPaths` and to the conditional render in that page.
 
-**Add a case study.** Copy `src/content/work/template-case-study.mdx`, fill in real numbers, and remove `draft: true`.
+**Add a case study.** Copy an existing file in `src/content/work/` (for example `upgrad-backend-platform.mdx`) and replace its frontmatter and body. Set `draft: true` to keep it out of production while writing.
 
 **Change profile copy, experience or socials.** Edit `src/data/site.ts`.
 

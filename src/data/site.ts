@@ -9,7 +9,7 @@ export const site = {
   email: 'jayeshkarli@gmail.com',
   /** Cal.com or similar booking link. Leave empty to hide booking buttons. */
   bookingUrl: '',
-  resumePath: '/JayeshKarli-Cv.pdf',
+  resumeUrl: 'https://drive.google.com/file/d/1kYV7N8KsQZEhQA0yMyaZxw_1q70vowyH/view?usp=sharing',
   careerStart: '2021-06-14',
   codingStart: '2018-08-01',
   leetcodeUsername: 'karli',
@@ -51,7 +51,8 @@ export type Job = { title: string; company: string; start: string; end?: string 
 
 /** Most recent first. */
 export const experience: Job[] = [
-  { title: 'Software Engineer 2', company: 'upGrad', start: '2024-10' },
+  { title: 'Senior Software Engineer', company: 'upGrad', start: '2025-10' },
+  { title: 'Software Engineer 2', company: 'upGrad', start: '2024-10', end: '2025-10' },
   { title: 'Full Stack Developer', company: 'Whitecrow Research', start: '2023-10', end: '2024-10' },
   { title: 'Software Engineer', company: 'Neosoft Technologies', start: '2021-06', end: '2023-10' },
 ];

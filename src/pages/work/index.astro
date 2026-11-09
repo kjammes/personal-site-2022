@@ -1,7 +1,7 @@
 ---
 import Base from '@/layouts/Base.astro';
 import { getCaseStudies } from '@/lib/content';
-import { projects, site } from '@/data/site';
+import { site } from '@/data/site';
 
 const studies = await getCaseStudies();
 ---
@@ -20,7 +20,7 @@ const studies = await getCaseStudies();
     {
       studies.length === 0 ? (
         <p class="panel empty narrow">
-          Detailed case studies are being written up. In the meantime, the <a href={site.resumePath}>resume</a> covers roles
+          Detailed case studies are being written up. In the meantime, the <a href={site.resumeUrl} target="_blank" rel="noopener">resume</a> covers roles
           and responsibilities.
         </p>
       ) : (
@@ -50,11 +50,6 @@ const studies = await getCaseStudies();
         </ul>
       )
     }
-
-    <h2 class="h oss">Open source</h2>
-    <ul class="star narrow">
-      {projects.map((p) => <li><a href={p.href}>{p.name}</a>. {p.summary}</li>)}
-    </ul>
   </div>
 </Base>
 
@@ -116,8 +111,5 @@ const studies = await getCaseStudies();
     margin: 0;
     color: var(--text-strong);
     font-weight: 700;
-  }
-  .oss {
-    margin-top: 4rem;
   }
 </style>

@@ -1,0 +1,48 @@
+---
+title: "Backend platform for upGrad's learning, exams and ERP systems"
+summary: "Technical owner for mission-critical Spring Boot services at upGrad: Referral Service, Exam Configurator, the Gradr proctoring platform and a large-scale ERP."
+role: "Software Engineer 2, then Senior Software Engineer from October 2025. Technical owner"
+period: "October 2024 to now"
+stack: ["Spring Boot (Java)", "MySQL", "PostgreSQL", "Elasticsearch", "Redis", "Kafka", "WebSockets", "SSE", "Grafana", "Instana", "AWS Athena"]
+metrics:
+  - { label: "mission-critical systems owned", value: "4" }
+  - { label: "caching layer", value: "Redis" }
+  - { label: "event backbone", value: "Kafka" }
+order: 1
+---
+
+## Context
+
+upGrad is an EdTech company. I am the technical owner for several of its mission-critical backend systems, all built in Spring Boot (Java):
+
+- **Referral Service**: learner referrals.
+- **Exam Configurator**: setting up and configuring exams.
+- **Gradr**: the exam proctoring platform.
+- **A large-scale ERP**: internal operations.
+
+As owner I make the architecture, service-boundary, scalability and reliability decisions for these systems.
+
+## Design and data modeling
+
+I write the high-level designs and database schemas for new backend services. That covers relational stores (MySQL, PostgreSQL) and Elasticsearch, with a focus on data modeling and performance at scale.
+
+## Performance
+
+I added Redis-based caching to hot read paths. It cut API latency, raised throughput and took a large share of the load off the primary databases.
+
+## Event-driven communication
+
+I brought in Kafka for asynchronous, event-driven communication between microservices. Services stay loosely coupled, and a failure in one service no longer spreads to the services that depend on it.
+
+## Real-time features in the LMS
+
+- **WebSockets** for live learner–faculty interaction.
+- **Server-Sent Events (SSE)** for real-time notifications inside the learning platform.
+
+## Payments
+
+I designed idempotent APIs for the payment workflows. A retried or duplicated request cannot charge a learner twice or leave a payment in an inconsistent state, which matters in a distributed system where retries are normal.
+
+## Production health
+
+I track down production performance issues with Grafana, Instana and AWS Athena, and use what I find to choose which optimizations to ship.

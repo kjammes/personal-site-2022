@@ -1,0 +1,32 @@
+---
+title: "Candidate search across 800 million profiles in 1 to 2 seconds"
+summary: "Rewrote the Elasticsearch backend of a LinkedIn Recruiter competitor so searches over 800M+ candidate records return in 1 to 2 seconds, and built an AI job-description parser."
+role: "Software Engineer (Backend), led the search API rewrite"
+period: "October 2023 to October 2024"
+stack: ["Elasticsearch", "Spring Boot (Java)", "Node.js", "Angular"]
+metrics:
+  - { label: "candidate records searched", value: "800M+" }
+  - { label: "query response time", value: "1–2 s" }
+order: 2
+---
+
+## Context
+
+Whitecrow Research is an HR Tech company building a recruiter search product that competes with LinkedIn Recruiter. Recruiters search a pool of more than 800 million candidate records, so search speed and result quality are the product.
+
+## Rewriting the search APIs
+
+The legacy Elasticsearch backend APIs were slow at this scale. I led the rewrite. Queries across the full 800M+ record set now return in 1 to 2 seconds, which made the platform much faster for recruiters to use.
+
+## Ranking by what the recruiter asks for
+
+I designed Elasticsearch queries that rank candidates by each recruiter's own preferences, not by one fixed relevance order. Matches got more accurate and recruiters spent less time sifting through results.
+
+## AI-driven job description parser
+
+I built both halves of a module that parses job descriptions with AI and matches them against the candidate pool:
+
+- **Backend APIs** in Spring Boot (Java) and Node.js.
+- **Frontend** in Angular.
+
+A recruiter can paste in a job description and get matching candidates without writing a search by hand.
