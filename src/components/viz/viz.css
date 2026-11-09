@@ -142,6 +142,101 @@
   font-size: 1.5rem;
 }
 
+/* Full screen button row, and the toolbar shown while full screen. */
+.viz-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0;
+}
+.viz-toolbar + .viz-controls {
+  margin-top: 0.5rem;
+}
+.viz-toolbar .viz-btn {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  font-size: var(--fs-xs);
+}
+.viz-fs-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+.viz-fs-speed {
+  display: flex;
+  gap: 0.25rem;
+}
+.viz-fs-speed .viz-btn[aria-pressed='true'] {
+  --c: var(--accent);
+}
+
+/* Full screen: the frame fills the screen and the drawing grows to fit it. */
+.viz-frame.viz-fs {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  overflow: auto;
+}
+.viz-frame.viz-fs::backdrop {
+  background: var(--bg);
+}
+.viz-fs-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  height: 100dvh;
+}
+.viz-fs .viz-stage {
+  flex: 1;
+  padding: 2rem 4vw;
+}
+.viz-fs .viz-stage > * {
+  width: 100%;
+}
+/* !important beats the inline size caps widgets set for the in-article layout. */
+.viz-fs .viz-drawing {
+  max-width: none !important;
+  max-height: 70vh;
+}
+.viz-fs .viz-status {
+  margin-top: 2rem;
+  font-size: clamp(1rem, 1.6vw, 1.75rem);
+}
+.viz-toolbar {
+  transition: opacity 0.3s;
+}
+.viz-fs.viz-idle {
+  cursor: none;
+}
+.viz-fs.viz-idle .viz-toolbar {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Keyboard users always see the toolbar while they are in it. */
+.viz-fs.viz-idle .viz-toolbar:has(:focus-visible) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viz-toolbar {
+    transition: none;
+  }
+}
+
+@media print {
+  .viz-toolbar {
+    display: none;
+  }
+}
+
 @media (forced-colors: active) {
   .viz-btn,
   .viz-input {

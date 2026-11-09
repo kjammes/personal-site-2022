@@ -175,6 +175,7 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
         <svg
           viewBox={`-4 -4 ${width + 8} ${height + 8}`}
           width="100%"
+          className="viz-drawing"
           style={{
             display: 'block',
             // Below this width the numbers get too small to read, so the drawing scrolls instead.
