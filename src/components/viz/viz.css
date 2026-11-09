@@ -1,0 +1,155 @@
+.viz-frame {
+  --viz-blue: var(--accent);
+  --viz-green: var(--green);
+  --viz-purple: var(--purple);
+  --viz-pink: var(--pink);
+  --viz-amber: var(--amber);
+  --viz-neutral: var(--muted);
+
+  margin: 2rem 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+  margin: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: var(--bg-raised);
+}
+
+.viz-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+.viz-group-label {
+  color: var(--c);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.viz-group-row {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.viz-btn,
+.viz-input {
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 0.7rem;
+  border: 1px solid color-mix(in oklab, var(--c, var(--muted)) 70%, transparent);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--c, var(--muted)) 14%, var(--bg-panel));
+  color: var(--c, var(--text));
+  font: inherit;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+.viz-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--c, var(--muted)) 26%, var(--bg-panel));
+}
+.viz-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.viz-btn[aria-pressed='true'] {
+  background: var(--c, var(--muted));
+  color: var(--bg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.viz-input {
+  width: 4.5rem;
+  text-align: center;
+  cursor: text;
+  -moz-appearance: textfield;
+}
+.viz-input::-webkit-outer-spin-button,
+.viz-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.viz-stage {
+  display: grid;
+  /* minmax(0, 1fr) stops a wide drawing from stretching the stage; the drawing scrolls instead. */
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 1rem;
+}
+
+.viz-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  /* Space so the focus ring and the labels above the cells are not clipped. */
+  padding: 4px;
+}
+
+.viz-caption {
+  padding: 0.6rem 1rem 0.9rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+
+.viz-status {
+  min-height: 1.6em;
+  margin: 0.5rem 0 0;
+  color: var(--text);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.viz-bare {
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+.viz-bare .viz-stage {
+  padding: 0;
+}
+
+/* Speed control is a full-width row of equal buttons. */
+.viz-speed {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.35rem;
+  width: 100%;
+}
+.viz-speed .viz-btn {
+  --c: var(--muted);
+  width: 100%;
+}
+.viz-speed .viz-btn[aria-pressed='true'] {
+  --c: var(--accent);
+}
+
+/* Studio: large type for 1080p and 4K recordings. */
+.viz-bare .viz-status {
+  margin-top: 2rem;
+  font-size: 1.5rem;
+}
+
+@media (forced-colors: active) {
+  .viz-btn,
+  .viz-input {
+    border: 1px solid ButtonText;
+  }
+  .viz-btn[aria-pressed='true'] {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}

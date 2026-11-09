@@ -1,0 +1,180 @@
+---
+import { render } from 'astro:content';
+import Base from '@/layouts/Base.astro';
+import Toc from '@/components/Toc.astro';
+import AvailabilityCard from '@/components/AvailabilityCard.astro';
+import YouTube from '@/components/YouTube.astro';
+import Hl from '@/components/mdx/Hl.astro';
+import Callout from '@/components/mdx/Callout.astro';
+import { formatDate, getPosts, readingMinutes, slugifyTag } from '@/lib/content';
+import { site } from '@/data/site';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+const { title, description, pubDate, updatedDate, tags, series, youtubeId, videoUploadDate, draft } = post.data;
+const url = new URL(`/blog/${post.id}`, Astro.site).href;
+const minutes = readingMinutes(post.body);
+
+const article: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: title,
+  description,
+  datePublished: pubDate.toISOString(),
+  dateModified: (updatedDate ?? pubDate).toISOString(),
+  author: { '@id': `${site.url}/#person` },
+  mainEntityOfPage: url,
+  keywords: tags.join(', '),
+};
+const jsonLd: Record<string, unknown>[] = [article];
+if (youtubeId) {
+  jsonLd.push({
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: title,
+    description,
+    thumbnailUrl: `https://i.ytimg.com/vi/${youtubeId}/maxresdefault.jpg`,
+    uploadDate: (videoUploadDate ?? pubDate).toISOString(),
+    contentUrl: `https://www.youtube.com/watch?v=${youtubeId}`,
+    embedUrl: `https://www.youtube.com/embed/${youtubeId}`,
+  });
+}
+---
+
+<Base
+  title={title}
+  description={description}
+  type="article"
+  publishedTime={pubDate}
+  modifiedTime={updatedDate}
+  noindex={draft}
+  jsonLd={jsonLd}
+>
+  <div class="container layout">
+    <article>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/blog">blog</a>
+        {tags[0] && <> <span class="muted" aria-hidden="true">|</span> <a href={`/blog/tags/${slugifyTag(tags[0])}`}>{tags[0]}</a></>}
+      </nav>
+      <h1>{title}</h1>
+      <p class="meta">
+        {site.name} <span class="muted" aria-hidden="true">|</span> <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>{' '}
+        <span class="muted" aria-hidden="true">|</span> {minutes} min read
+        {draft && <span class="draft">draft</span>}
+      </p>
+      {updatedDate && <p class="meta muted">Updated {formatDate(updatedDate)}</p>}
+      {series && <p class="meta muted">Part of the series <strong>{series}</strong></p>}
+
+      {
+        youtubeId && (
+          <section class="video" aria-label="Companion video">
+            <YouTube id={youtubeId} title={title} />
+          </section>
+        )
+      }
+
+      <div class="prose">
+        <Content components={{ Hl, Callout }} />
+      </div>
+
+      {
+        tags.length > 0 && (
+          <ul class="tags" aria-label="Tags">
+            {tags.map((t) => (
+              <li><a href={`/blog/tags/${slugifyTag(t)}`}><span aria-hidden="true">#</span>{t}</a></li>
+            ))}
+          </ul>
+        )
+      }
+    </article>
+
+    <aside class="side">
+      <div class="sticky">
+        <Toc headings={headings} />
+        <AvailabilityCard />
+        <p class="rss">Get the <a href="/rss.xml">RSS feed</a></p>
+      </div>
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) var(--toc-width);
+    justify-content: space-between;
+    gap: 4rem;
+    padding-top: 2.5rem;
+  }
+  article {
+    min-width: 0;
+  }
+  .crumbs {
+    margin: 0 0 1.5rem;
+    font-size: var(--fs-sm);
+  }
+  h1 {
+    margin: 0 0 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid var(--accent);
+    color: var(--text-strong);
+    font-size: clamp(1.2rem, 1rem + 1vw, 1.5rem);
+    line-height: 1.45;
+    overflow-wrap: break-word;
+  }
+  .meta {
+    margin: 0.25rem 0;
+    font-size: var(--fs-sm);
+  }
+  .draft {
+    margin-left: 1ch;
+    padding: 0 0.5ch;
+    border: 1px solid var(--border-strong);
+    border-radius: 3px;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+  }
+  .video {
+    margin: 2rem 0 0;
+  }
+  .prose {
+    margin-top: 2.5rem;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin: 3rem 0 0;
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--border);
+    list-style: none;
+    font-size: var(--fs-sm);
+  }
+  .sticky {
+    position: sticky;
+    top: 5rem;
+    display: grid;
+    gap: 2rem;
+  }
+  .rss {
+    margin: 0;
+    font-size: var(--fs-sm);
+  }
+  @media (max-width: 960px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 3rem;
+    }
+    .side :global(.toc) {
+      display: none;
+    }
+    .sticky {
+      position: static;
+    }
+  }
+</style>

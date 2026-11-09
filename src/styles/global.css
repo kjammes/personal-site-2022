@@ -1,0 +1,429 @@
+/*
+ * Palette: PlanetScale's neutral greys and system monospace font, with the
+ * two colours from the logo as accents.
+ *   blue (logo disc)  -> links, buttons, interactive states
+ *   red  (logo "JK")  -> brand marks: caret, name, bullets, heading rules, dots
+ * Green, purple and amber appear only inside article widgets and the
+ * inline highlights that point at their controls.
+ */
+:root {
+  color-scheme: dark;
+
+  --bg: #111111;
+  --bg-panel: #1a1a1a;
+  --bg-raised: #2b2b2b;
+  --border: #2b2b2b;
+  --border-strong: #414141;
+
+  --text: #e1e1e1;
+  --text-strong: #ffffff;
+  --muted: #a1a1a1;
+
+  /* Logo blue #0078ff, lifted a touch for link text on #111 (6.1:1).
+   * --accent-strong is darkened so white text on it passes 4.5:1. */
+  --accent: #3b93ff;
+  --accent-strong: #0066dd;
+  --accent-stronger: #0057c2;
+  --accent-soft: rgb(0 120 255 / 0.14);
+
+  /* Logo red */
+  --red: #ff304f;
+  --red-soft: rgb(255 48 79 / 0.16);
+
+  --green: #40d763;
+  --purple: #a18bf5;
+  /* Lighter than the logo red so it stays above 4.5:1 on tinted backgrounds. */
+  --pink: #ff7a8c;
+  --amber: #f2b600;
+
+  /* Type scale. Nothing smaller than 13px: monospace gets hard to read below it. */
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.875rem;
+
+  --focus: #8cc2ff;
+
+  --font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --measure: 42rem;
+  --toc-width: 15rem;
+  --container: 66rem;
+  --radius: 6px;
+}
+
+/* Users who ask the OS for more contrast get brighter secondary text and borders. */
+@media (prefers-contrast: more) {
+  :root {
+    --text: #f5f5f5;
+    --muted: #d0d0d0;
+    --border: #5a5a5a;
+    --border-strong: #8a8a8a;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--red-soft);
+  color: var(--text-strong);
+}
+
+/*
+ * Links are underlined so they never rely on colour alone (WCAG 1.4.1).
+ * Navigation, cards and buttons opt out with .plain or their own rules,
+ * because their position and shape already mark them as links.
+ */
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, currentColor 55%, transparent);
+}
+a:hover {
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 2px;
+}
+a.plain {
+  text-decoration: none;
+}
+a.plain:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+/* A thick, light ring that stands out on every background used here. */
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  height: auto;
+}
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.narrow {
+  max-width: var(--measure);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Skip link: hidden until it receives keyboard focus. */
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--focus);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text-strong);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
+/* Target of the skip link; it takes focus without showing a ring around the whole page. */
+main:focus {
+  outline: none;
+}
+
+/* Section heading: small, bold, underlined, PlanetScale style. */
+.h {
+  margin: 0 0 1rem;
+  color: var(--text-strong);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+/* Asterisk bullets */
+ul.star {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+ul.star > li {
+  position: relative;
+  padding-left: 2ch;
+  margin: 0.35rem 0;
+}
+ul.star > li::before {
+  content: '*';
+  content: '*' / '';
+  position: absolute;
+  left: 0;
+  color: var(--red);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5ch;
+  min-height: 2.75rem;
+  padding: 0.35rem 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  color: var(--accent);
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--accent-soft);
+  text-decoration: none;
+}
+.btn.solid {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  font-weight: 700;
+}
+.btn.solid:hover {
+  background: var(--accent-stronger);
+  border-color: var(--accent-stronger);
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ---------- Article prose ---------- */
+.prose {
+  max-width: var(--measure);
+}
+.prose > * + * {
+  margin-top: 1.25rem;
+}
+.prose p,
+.prose ul,
+.prose ol {
+  margin-bottom: 0;
+}
+.prose h2,
+.prose h3 {
+  color: var(--text-strong);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.prose h2 {
+  margin-top: 3rem;
+  font-size: 1.05rem;
+  text-decoration: underline;
+  text-decoration-color: var(--red);
+  text-underline-offset: 5px;
+  text-decoration-thickness: 1px;
+}
+.prose h3 {
+  margin-top: 2rem;
+  font-size: 0.95rem;
+}
+.prose h2 a,
+.prose h3 a {
+  color: inherit;
+}
+.prose strong {
+  color: var(--text-strong);
+}
+.prose ul {
+  list-style: none;
+  padding-left: 0;
+}
+.prose ul > li {
+  position: relative;
+  padding-left: 2ch;
+}
+.prose ul > li::before {
+  content: '*';
+  content: '*' / '';
+  position: absolute;
+  left: 0;
+  color: var(--red);
+}
+.prose ol {
+  padding-left: 3ch;
+}
+.prose li + li {
+  margin-top: 0.5rem;
+}
+.prose blockquote {
+  margin-left: 0;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--accent);
+  color: var(--muted);
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 3rem 0;
+}
+.prose :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  background: var(--bg-raised);
+  color: var(--text-strong);
+  font-size: 0.9em;
+}
+.prose pre {
+  max-width: 100%;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+/* Shiki inlines its theme background; match the panels instead. */
+.prose pre.astro-code {
+  background-color: var(--bg-panel) !important;
+}
+/* Wide tables scroll inside their own wrapper on small screens (wrapped by a script in Base.astro). */
+.prose .table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.prose th,
+.prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+.prose th {
+  color: var(--text-strong);
+}
+.prose img {
+  border-radius: var(--radius);
+}
+
+/* Widgets are allowed to break out slightly wider than the text column. */
+.prose .viz-frame {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* Inline highlights that point at a widget control of the same colour. */
+.hl {
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  color: var(--hl);
+  background: color-mix(in oklab, var(--hl) 16%, transparent);
+}
+.hl-blue { --hl: var(--accent); }
+.hl-green { --hl: var(--green); }
+.hl-purple { --hl: var(--purple); }
+.hl-pink { --hl: var(--pink); }
+.hl-amber { --hl: var(--amber); }
+
+/* Windows High Contrast and other forced-colour modes. */
+@media (forced-colors: active) {
+  .btn,
+  .panel,
+  .hl {
+    border: 1px solid CanvasText;
+  }
+  .btn.solid {
+    forced-color-adjust: none;
+    background: ButtonText;
+    color: ButtonFace;
+  }
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* Clean, ink-friendly printouts. */
+@media print {
+  :root {
+    --bg: #fff;
+    --bg-panel: #fff;
+    --bg-raised: #f2f2f2;
+    --border: #bbb;
+    --border-strong: #888;
+    --text: #111;
+    --text-strong: #000;
+    --muted: #444;
+    --accent: #0047a3;
+  }
+  .site-header,
+  .site-footer,
+  .skip-link {
+    display: none;
+  }
+}

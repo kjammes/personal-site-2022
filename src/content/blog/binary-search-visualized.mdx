@@ -1,0 +1,69 @@
+---
+title: "Binary search, visualized"
+description: "Why binary search needs only a handful of comparisons to find a value among millions, explained with an interactive animation."
+pubDate: 2026-11-09
+tags: ["algorithms", "databases"]
+series: "Data structures behind databases"
+draft: true
+---
+
+import BinarySearch from '@/components/viz/BinarySearch';
+import SpeedControl from '@/components/viz/SpeedControl';
+
+{/*
+  Sample article. It demonstrates the authoring conventions:
+  1. Import widgets at the top and mount them with client:visible.
+  2. Use <Hl c="..."> in prose with the same colour as the control it refers to.
+  3. Set youtubeId in the frontmatter once the companion video is live.
+  It stays a draft, so it only appears in `npm run dev`.
+*/}
+
+## The idea
+
+Binary search finds a value in a **sorted** array by repeatedly halving the range it still has to look at. Each comparison throws away half of what is left, so even a billion values need at most 30 comparisons.
+
+Try it below. Pick a value and press <Hl c="blue">Search</Hl>, or walk through it one comparison at a time with <Hl c="purple">Step</Hl>. Generate a <Hl c="green">new sorted array</Hl> whenever you like.
+
+<BinarySearch client:visible size={15} seed={7} />
+
+If the animation is too fast or too slow, change the speed for every visualization on this page:
+
+<SpeedControl client:visible />
+
+## How each step works
+
+Keep two indexes, `lo` and `hi`, around the part of the array that might still contain the target. Then repeat:
+
+1. Look at the middle element, the <Hl c="purple">mid</Hl>.
+2. If it equals the target, you are done, and the cell turns <Hl c="green">green</Hl>.
+3. If it is smaller than the target, everything to its left is smaller too, so move `lo` past it.
+4. If it is larger, move `hi` before it.
+
+When `lo` passes `hi`, the value is not in the array.
+
+```java
+static int binarySearch(int[] values, int target) {
+    int lo = 0, hi = values.length - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) >>> 1; // unsigned shift avoids int overflow
+        if (values[mid] == target) return mid;
+        if (values[mid] < target) lo = mid + 1;
+        else hi = mid - 1;
+    }
+    return -1;
+}
+```
+
+<Callout kind="tip" title="Why (lo + hi) >>> 1">
+For very large arrays `lo + hi` can overflow a signed int. The unsigned shift treats the sum as unsigned before halving, which gives the right midpoint.
+</Callout>
+
+## Why databases care
+
+| values | worst-case comparisons |
+| --- | --- |
+| 1,000 | 10 |
+| 1,000,000 | 20 |
+| 1,000,000,000 | 30 |
+
+A B-tree index applies the same halving idea inside every node, and adds a very wide fan-out so the tree stays only a few levels deep on disk. That is the next article in this series.

@@ -1,0 +1,139 @@
+---
+import Base from '@/layouts/Base.astro';
+import { site } from '@/data/site';
+
+const contactHref = site.bookingUrl || `mailto:${site.email}?subject=Project%20enquiry`;
+
+const offers = [
+  {
+    title: 'SaaS product build',
+    body: 'From idea to a production product: data model, APIs, auth, billing, multi-tenancy, admin tooling, deployment and monitoring.',
+  },
+  {
+    title: 'Scaling and performance',
+    body: 'Your product works but is slowing down or getting expensive. I find the bottlenecks in queries, indexes, caches and queues, and fix them.',
+  },
+  {
+    title: 'Data and search pipelines',
+    body: 'Event streaming with Kafka, search with Elasticsearch, background processing, and the reliability work that keeps data correct.',
+  },
+  {
+    title: 'AI features and AI-assisted delivery',
+    body: 'LLM-powered features built with evals and guardrails, and an engineering workflow that uses AI to ship faster without losing quality.',
+  },
+];
+
+const steps = [
+  ['Discovery call', 'We talk through the problem, constraints and timeline. Free, 30 minutes.'],
+  ['Written proposal', 'Scope, architecture outline, milestones and a fixed price or a weekly rate.'],
+  ['Build in the open', 'Weekly demos, a shared board, and access to the repository from day one.'],
+  ['Handover', 'Documentation, runbooks and a walkthrough, so your team owns what was built.'],
+];
+---
+
+<Base
+  title="Services"
+  description="Freelance senior backend engineering: scalable SaaS products, performance work, Kafka and Elasticsearch pipelines, and AI features, built fast and reliably."
+>
+  <div class="container wrap">
+    <h1 class="h">Services</h1>
+    <p class="lead narrow">
+      I build SaaS products that keep working as they grow. Senior backend engineering, data-heavy systems, and an AI-assisted
+      workflow that gets you to production sooner.
+    </p>
+
+    <ul class="offers">
+      {
+        offers.map((o) => (
+          <li class="panel">
+            <h2>{o.title}</h2>
+            <p>{o.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <h2 class="h">How an engagement works</h2>
+    <ol class="steps narrow">
+      {
+        steps.map(([t, b], i) => (
+          <li>
+            <span class="n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <strong>{t}</strong>
+              <p class="muted">{b}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <section class="cta panel narrow">
+      <h2 class="h">Tell me what you are building</h2>
+      <p>A few lines about the product, where it is today, and what you need is enough to start.</p>
+      <p><a class="btn solid" href={contactHref}>{site.bookingUrl ? 'book a discovery call' : `email ${site.email}`}</a></p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 3rem;
+  }
+  .lead {
+    margin: 0 0 3rem;
+    color: var(--text-strong);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+  }
+  .offers {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: 1rem;
+    list-style: none;
+    margin: 0 0 4rem;
+    padding: 0;
+  }
+  .offers li {
+    padding: 1.25rem;
+  }
+  .offers h2 {
+    margin: 0 0 0.5rem;
+    color: var(--text-strong);
+    font-size: 0.95rem;
+  }
+  .offers p {
+    margin: 0;
+    font-size: var(--fs-sm);
+    line-height: 1.65;
+  }
+  .steps {
+    list-style: none;
+    margin: 0 0 4rem;
+    padding: 0;
+  }
+  .steps li {
+    display: grid;
+    grid-template-columns: 3ch 1fr;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .n {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .steps p {
+    margin: 0.2rem 0 0;
+    font-size: var(--fs-sm);
+  }
+  .cta {
+    padding: 1.5rem;
+  }
+  .cta p {
+    margin: 0 0 1rem;
+  }
+  .cta p:last-child {
+    margin: 0;
+  }
+</style>

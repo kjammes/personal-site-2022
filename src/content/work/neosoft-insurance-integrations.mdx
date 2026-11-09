@@ -1,0 +1,26 @@
+---
+title: "Cutting a data job's run time by 90–95% for an insurance platform"
+summary: "Replaced a slow Node.js script with a MongoDB shell script, cutting run time by 90–95%, and built resilient third-party integrations across Spring Boot microservices."
+role: "Software Engineer"
+period: "June 2021 to September 2023"
+stack: ["MongoDB", "Node.js", "Spring Boot (Java)", "Microservices"]
+metrics:
+  - { label: "reduction in execution time", value: "90–95%" }
+order: 3
+---
+
+## Context
+
+At NeoSoft Technologies I worked on Insurance Tech products built as microservices.
+
+## From Node.js script to MongoDB shell script
+
+A Node.js script that processed data was performing badly. I rewrote it as a MongoDB shell script so the work ran inside the database, not in application code. Execution time dropped by 90–95%.
+
+## Third-party integrations
+
+I integrated and maintained complex third-party APIs across several Spring Boot (Java) microservices. Each integration has:
+
+- **Error handling**, so a partner failure does not crash our service.
+- **Retries** for transient failures.
+- **Data validation**, so bad partner data stops at the edge of our system.

@@ -1,0 +1,44 @@
+---
+/**
+ * Recording studio: renders one widget full screen, without controls, driven by a script.
+ * Open /studio/<widget>?speed=1 at 3840x2160 (or 1920x1080) and screen record it for YouTube.
+ * Never indexed: noindex meta, X-Robots-Tag header, robots.txt disallow, excluded from the sitemap.
+ */
+import BaseHead from '@/components/BaseHead.astro';
+import BinarySearch from '@/components/viz/BinarySearch';
+
+export function getStaticPaths() {
+  return [{ params: { widget: 'binary-search' } }];
+}
+
+const { widget } = Astro.params;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={`Studio: ${widget}`} noindex />
+  </head>
+  <body class="studio">
+    <main>
+      {widget === 'binary-search' && <BinarySearch client:only="react" size={15} seed={7} script={[44, 9, 61, 30]} />}
+    </main>
+    <script>
+      import { setSpeed } from '@/components/viz/speed';
+      const s = Number(new URLSearchParams(location.search).get('speed'));
+      if (s > 0) setSpeed(s);
+    </script>
+  </body>
+</html>
+
+<style>
+  .studio {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+  }
+  main {
+    width: 88vw;
+  }
+</style>

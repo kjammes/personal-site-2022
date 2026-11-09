@@ -1,0 +1,41 @@
+---
+import Base from '@/layouts/Base.astro';
+import PostList from '@/components/PostList.astro';
+import { getPosts, slugifyTag } from '@/lib/content';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const byTag = new Map<string, { name: string; posts: typeof posts }>();
+  for (const post of posts) {
+    for (const name of post.data.tags) {
+      const slug = slugifyTag(name);
+      if (!byTag.has(slug)) byTag.set(slug, { name, posts: [] });
+      byTag.get(slug)!.posts.push(post);
+    }
+  }
+  return [...byTag].map(([tag, { name, posts }]) => ({ params: { tag }, props: { name, posts } }));
+}
+
+const { name, posts } = Astro.props;
+---
+
+<Base title={`Articles about ${name}`} description={`Articles about ${name} by Jayesh Karli.`}>
+  <div class="container narrow wrap">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/blog">blog</a> <span class="muted" aria-hidden="true">|</span> <span aria-current="page"><span aria-hidden="true">#</span>{name}</span></nav>
+    <h1 class="h">Articles about {name}</h1>
+    <PostList posts={posts} />
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 3rem;
+  }
+  .crumbs {
+    margin: 0 0 1rem;
+    font-size: var(--fs-sm);
+  }
+  .h {
+    margin-bottom: 2rem;
+  }
+</style>

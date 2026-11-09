@@ -1,0 +1,115 @@
+---
+import Base from '@/layouts/Base.astro';
+import { getCaseStudies } from '@/lib/content';
+import { site } from '@/data/site';
+
+const studies = await getCaseStudies();
+---
+
+<Base
+  title="Work"
+  description="Case studies of scalable, data-heavy backend systems and SaaS products built by Jayesh Karli, with architecture and production numbers."
+>
+  <div class="container wrap">
+    <h1 class="h">Work</h1>
+    <p class="muted intro narrow">
+      Systems I have designed or led, with the architecture, the constraints, and the numbers. Some details are anonymised to
+      respect employer and client confidentiality.
+    </p>
+
+    {
+      studies.length === 0 ? (
+        <p class="panel empty narrow">
+          Detailed case studies are being written up. In the meantime, the <a href={site.resumeUrl} target="_blank" rel="noopener">resume</a> covers roles
+          and responsibilities.
+        </p>
+      ) : (
+        <ul class="studies">
+          {studies.map((s) => (
+            <li class="panel">
+              <a class="title plain" href={`/work/${s.id}`}>
+                {s.data.title}
+              </a>
+              {s.data.draft && <span class="draft">draft</span>}
+              <p class="muted meta">
+                {s.data.role} <span aria-hidden="true">|</span> {s.data.period}
+              </p>
+              <p>{s.data.summary}</p>
+              {s.data.metrics.length > 0 && (
+                <dl class="metrics">
+                  {s.data.metrics.slice(0, 3).map((m) => (
+                    <div>
+                      <dt>{m.label}</dt>
+                      <dd>{m.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .wrap {
+    padding-top: 3rem;
+  }
+  .intro {
+    margin: 0 0 2.5rem;
+  }
+  .empty {
+    padding: 1.25rem;
+  }
+  .studies {
+    display: grid;
+    gap: 1rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-width: 52rem;
+  }
+  .studies li {
+    padding: 1.25rem clamp(1rem, 4vw, 1.5rem);
+  }
+  .title {
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+  .title:hover {
+    color: var(--accent);
+  }
+  .draft {
+    margin-left: 1ch;
+    color: var(--muted);
+    font-size: var(--fs-xs);
+  }
+  .meta {
+    margin: 0.25rem 0 0.75rem;
+    font-size: var(--fs-sm);
+  }
+  .studies p {
+    margin-bottom: 0;
+  }
+  .metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 2.5rem;
+    margin: 1rem 0 0;
+  }
+  .metrics div {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+  .metrics dt {
+    color: var(--muted);
+    font-size: var(--fs-sm);
+  }
+  .metrics dd {
+    margin: 0;
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+</style>

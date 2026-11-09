@@ -1,0 +1,9 @@
+---
+/** Inline highlight. Use the same colour as the widget control the sentence refers to. */
+interface Props {
+  c?: 'blue' | 'green' | 'purple' | 'pink' | 'amber';
+}
+const { c = 'blue' } = Astro.props;
+---
+
+<span class={`hl hl-${c}`}><slot /></span>
