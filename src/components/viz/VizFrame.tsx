@@ -232,7 +232,8 @@ export function NumberField({
 }) {
   const clamp = (v: number) => Math.min(max, Math.max(min, v));
   return (
-    <>
+    // One unit, so a wrapping control row never separates the minus, the input and the plus.
+    <span className="viz-field">
       <Btn aria-label={`Decrease ${label}`} onClick={() => onChange(clamp(value - 1))}>
         -
       </Btn>
@@ -252,6 +253,6 @@ export function NumberField({
       <Btn aria-label={`Increase ${label}`} onClick={() => onChange(clamp(value + 1))}>
         +
       </Btn>
-    </>
+    </span>
   );
 }

@@ -39,6 +39,13 @@
 }
 .viz-group-row {
   display: flex;
+  /* Wide groups, such as a range with two number fields, wrap onto a second row on phones. */
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+.viz-field {
+  display: flex;
   gap: 0.35rem;
 }
 

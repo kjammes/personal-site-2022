@@ -1,0 +1,112 @@
+---
+title: "B+ trees, visualized"
+description: "Why almost every database index is a B+ tree: values only in the leaves, leaves linked in order, and range scans that never climb back up. With an interactive tree."
+pubDate: 2026-11-10
+tags: ["algorithms", "databases"]
+series: "Data structures behind databases"
+draft: false
+---
+
+import BPlusTree from '@/components/viz/BPlusTree';
+import SpeedControl from '@/components/viz/SpeedControl';
+
+## Two small changes
+
+This series started with [binary search](/blog/binary-search-visualized), which halves a sorted array at every step. The [B-tree](/blog/b-tree-visualized) put that same search inside wide nodes, one node per disk page, so that billions of keys sit only three or four reads away.
+
+A B+ tree is a B-tree with two changes:
+
+1. **Every key lives in a leaf.** Internal nodes only hold copies of keys, called separators, that point the way down. They hold no rows.
+2. **The leaves are linked.** Each leaf points to the next one in key order, so the bottom level reads like one long sorted list.
+
+Those two changes are why most relational databases build their indexes on this design. A note on names: "B+ tree" is the textbook term for the idea, not a description of any one database's code.
+
+* **MySQL's InnoDB** storage engine stores every table and index as a B+ tree, close to the textbook version described here.
+* **PostgreSQL** uses a modified B+ tree, based on a 1981 design by Lehman and Yao, which adds extra links between nodes so many sessions can read and write the tree at once. Its documentation calls the index type simply "B-tree".
+
+This article sticks to the textbook version. Later articles in this series will look at how MySQL and PostgreSQL each implement it, and where they differ.
+
+## Try it
+
+The tree below holds the same 14 keys as the B-tree in the previous article, with at most 3 keys per node. Notice that some keys, such as 32 and 64, appear twice: once as a separator, and again in a leaf.
+
+Press <Hl c="blue">Search</Hl> and the search always goes all the way down to a leaf. Press <Hl c="green">Insert</Hl> to add keys until a leaf <Hl c="pink">splits</Hl>. Then try a <Hl c="amber">Range scan</Hl>: it goes down the tree once, then walks sideways along the linked leaves. Each operation has its own Step button, <Hl c="blue">Step</Hl>, <Hl c="green">Step</Hl> and <Hl c="amber">Step</Hl>, which runs it one move at a time. Stepping through an insert is the best way to see a leaf split copy a key up.
+
+<BPlusTree client:visible count={14} seed={11} maxKeys={3} />
+
+If the animation is too fast or too slow, change the speed for every visualization on this page:
+
+<SpeedControl client:visible />
+
+## Searching always ends at a leaf
+
+In a B-tree, a search can stop early when it meets the key in an internal node. In a B+ tree, internal nodes only route. A separator `s` means "keys smaller than `s` are on the left, and keys from `s` upward are on the right". So when the target equals a separator, the search goes right and keeps going down.
+
+```java
+static boolean contains(Node node, int target) {
+    // Route down: follow the first child whose separator is larger than target.
+    while (!node.isLeaf) {
+        int i = 0;
+        while (i < node.keyCount && node.keys[i] <= target) i++;
+        node = node.children[i];
+    }
+    // Then the binary search from the first article, inside the leaf.
+    return Arrays.binarySearch(node.keys, 0, node.keyCount, target) >= 0;
+}
+```
+
+The widget binary searches the separators too. The loop above is the linear version, which is easier to read.
+
+This looks like a step back, since some searches now read one more node. In practice it is a gain:
+
+* **Every lookup costs the same.** Every search reads exactly one node per level. Query planners can predict that.
+* **Internal nodes get smaller.** They hold only keys and pointers, not whole rows, so a page fits many more of them. More children per node means a shorter tree, which wins back the extra level and more.
+* **The upper levels fit in memory.** Because they are so compact, a database can keep all the internal nodes cached and read only the leaf from disk.
+
+## Splitting a leaf copies a key up
+
+Inserting works like the B-tree: find the leaf, add the key, and split if the node is too full. The difference is in what happens to the middle key when a **leaf** splits.
+
+* In a B-tree, the middle key **moves up** to the parent and leaves the leaf.
+* In a B+ tree leaf, every key has to stay in a leaf, so the leaf splits in two and a **copy** of the first key of the new right leaf goes up as a separator.
+
+The new right leaf also joins the chain: the left leaf now points to it, and it points to whatever the left leaf used to point to.
+
+When an **internal** node splits, nothing has to stay behind, so its middle key moves up just as it does in a B-tree. Watch for both cases in the widget's status line as a split cascades upward.
+
+<Callout kind="note" title="Same balance guarantee">
+A B+ tree still grows only at the root, so every leaf stays at the same depth, and every node apart from the root stays at least half full.
+</Callout>
+
+## Range scans
+
+Here is where the linked leaves pay off. Take a query such as:
+
+```sql
+SELECT * FROM orders WHERE id BETWEEN 20 AND 60;
+```
+
+A B+ tree answers it in two phases:
+
+1. Search down to the leaf where 20 would be. That is one read per level, the same as any lookup.
+2. Read keys from there in order, and when a leaf runs out, follow its next pointer to the neighbouring leaf. Stop at the first key larger than 60.
+
+Apart from the leaves at either end, every leaf read in the second phase is full of matching keys. The cost is the height of the tree plus the number of leaves the range covers, and nothing above the leaves is read twice.
+
+In a plain B-tree the same query has to do an in-order walk. Keys in the range are spread across every level, so the walk climbs up to a parent to collect a key, goes down into the next child, climbs back up again, and so on. It reads internal nodes over and over, and its disk reads jump around the file instead of moving forward.
+
+<Callout kind="tip" title="Why ORDER BY on an indexed column is cheap">
+The leaf chain is already sorted. A query with `ORDER BY id` and an index on `id` can read rows in order straight off the leaves, with no sort step. `LIMIT 10` just stops after ten keys.
+</Callout>
+
+## B-tree or B+ tree?
+
+| | B-tree | B+ tree |
+| --- | --- | --- |
+| Where keys live | Once each, at any level | All in leaves, with separator copies above |
+| Point lookup | Can stop early in an internal node | Always reads one node per level |
+| Fan-out | Lower, because internal nodes hold rows too | Higher, because internal nodes hold only keys |
+| Range scan | In-order walk, up and down the tree | One descent, then along the leaf chain |
+| In MySQL and PostgreSQL | Not used for their indexes | InnoDB uses it as is. PostgreSQL uses a modified version |
+
+The small saving a B-tree gets from stopping early is rarely worth losing cheap range scans and a higher fan-out. That is why, in database documentation, "B-tree" is usually an industry term for some kind of B+ tree rather than the textbook B-tree. PostgreSQL's `CREATE INDEX ... USING btree` is one example: the name says B-tree, but the structure is a B+ tree variant. How each database changes the textbook design is a topic for a future article in this series.
