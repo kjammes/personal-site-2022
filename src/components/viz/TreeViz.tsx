@@ -555,7 +555,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         .tv-under { display: flex; justify-content: center; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
         .tv-map { flex: none; border-radius: 3px; background: var(--bg-panel); border: 1px solid var(--border-strong); }
         .tv-map rect { fill: var(--border-strong); }
-        .tv-map .tv-map-seen { fill: var(--accent); }
+        .tv-map .tv-map-seen { fill: var(--viz-blue); }
         .tv-map .tv-map-on { fill: var(--purple); }
         .tv-map .tv-map-view { fill: none; stroke: var(--text); stroke-width: 1; transition: all var(--cam); }
         .tv-zoom {
@@ -569,7 +569,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         .tv-sep { stroke: var(--border-strong); stroke-width: 1; }
         .tv-key text { fill: var(--text); font: 600 14px var(--font); transition: fill var(--t); }
         .tv-mark { transition: fill var(--t); }
-        .tv-visited .tv-box { stroke: var(--accent); stroke-width: 2; }
+        .tv-visited .tv-box { stroke: var(--viz-blue); stroke-width: 2; }
         .tv-active .tv-box { stroke: var(--purple); stroke-width: 3; fill: color-mix(in oklab, var(--purple) 10%, var(--bg-raised)); }
         .tv-split .tv-box { stroke: var(--pink); stroke-width: 2; stroke-dasharray: 5 3; }
         .tv-overflow .tv-box { stroke: var(--pink); stroke-width: 3; fill: color-mix(in oklab, var(--pink) 14%, var(--bg-raised)); }
@@ -584,7 +584,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         .tv-scan .tv-mark { fill: color-mix(in oklab, var(--amber) 34%, var(--bg-raised)); }
         .tv-scan text { fill: var(--amber); }
         .tv-edge { fill: none; stroke: var(--border-strong); stroke-width: 1.5; animation: tv-in var(--t) ease-out var(--move) backwards; transition: stroke var(--t); }
-        .tv-edge.tv-on { stroke: var(--accent); stroke-width: 3; }
+        .tv-edge.tv-on { stroke: var(--viz-blue); stroke-width: 3; }
         .tv-link path { fill: none; stroke: var(--muted); stroke-width: 1.5; transition: stroke var(--t); }
         .tv-link .tv-head { fill: var(--muted); stroke: none; }
         .tv-link { animation: tv-in var(--t) ease-out var(--move) backwards; }

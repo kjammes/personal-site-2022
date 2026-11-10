@@ -1,10 +1,10 @@
 /*
- * Palette: PlanetScale's neutral greys and system monospace font, with the
- * two colours from the logo as accents.
- *   blue (logo disc)  -> links, buttons, interactive states
- *   red  (logo "JK")  -> brand marks: caret, name, bullets, heading rules, dots
- * Green, purple and amber appear only inside article widgets and the
- * inline highlights that point at their controls.
+ * Palette: PlanetScale's neutral greys and system monospace font, with one
+ * brand colour, red, for every accent: links, buttons, the logo, bullets,
+ * heading rules and the current page.
+ * Blue, green, purple, pink and amber appear only inside article widgets and
+ * the inline highlights that point at their controls, where they tell
+ * operations apart.
  */
 :root {
   color-scheme: dark;
@@ -19,16 +19,22 @@
   --text-strong: #ffffff;
   --muted: #a1a1a1;
 
-  /* Logo blue #0078ff, lifted a touch for link text on #111 (6.1:1).
-   * --accent-strong is darkened so white text on it passes 4.5:1. */
-  --accent: #3b93ff;
-  --accent-strong: #0066dd;
-  --accent-stronger: #0057c2;
-  --accent-soft: rgb(0 120 255 / 0.14);
-
-  /* Logo red */
+  /* Brand red. #ff304f is 5.2:1 on #111, fine for text.
+   * --accent-strong is darkened so white text on it passes 4.5:1 (5.0:1),
+   * --accent-stronger is the hover fill (7.6:1). */
   --red: #ff304f;
   --red-soft: rgb(255 48 79 / 0.16);
+  --accent: var(--red);
+  --accent-strong: #d91a3a;
+  --accent-stronger: #a80f2b;
+  --accent-soft: var(--red-soft);
+
+  /* Widget-only: the colour of the Search controls. */
+  --blue: #3b93ff;
+
+  /* Shared timing for the small hover transitions. */
+  --hover-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --hover-t: 0.3s;
 
   --green: #40d763;
   --purple: #a18bf5;
@@ -40,7 +46,8 @@
   --fs-xs: 0.8125rem;
   --fs-sm: 0.875rem;
 
-  --focus: #8cc2ff;
+  /* Pale pink: reads as part of the palette but stays distinct from red borders. */
+  --focus: #ffb3be;
 
   --font: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
@@ -99,23 +106,58 @@ body {
  * Navigation, cards and buttons opt out with .plain or their own rules,
  * because their position and shape already mark them as links.
  */
+/*
+ * On hover a solid underline sweeps in from the left. It is drawn as a
+ * background so it also follows links that wrap onto several lines.
+ * Anything that sets its own `background` shorthand (cards, buttons) drops it.
+ */
 a {
   color: var(--accent);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
   text-decoration-color: color-mix(in oklab, currentColor 55%, transparent);
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 2px;
+  transition:
+    background-size var(--hover-t) var(--hover-ease),
+    color var(--hover-t) var(--hover-ease),
+    text-decoration-color var(--hover-t) var(--hover-ease);
 }
 a:hover {
-  text-decoration-color: currentColor;
-  text-decoration-thickness: 2px;
+  text-decoration-color: transparent;
+  background-size: 100% 2px;
 }
-a.plain {
+a.plain,
+a.plain:hover {
   text-decoration: none;
 }
-a.plain:hover {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
+
+/*
+ * Underline for links laid out as tall touch targets (nav, footer), where a
+ * background would sit at the bottom of the box instead of under the text.
+ */
+.sweep {
+  position: relative;
+  background-image: none;
+}
+.sweep::after {
+  content: '';
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: 0.55rem;
+  height: 2px;
+  background: var(--red);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--hover-t) var(--hover-ease);
+}
+.sweep:hover::after,
+.sweep[aria-current='page']::after {
+  transform: scaleX(1);
 }
 
 /* A thick, light ring that stands out on every background used here. */
@@ -224,7 +266,9 @@ ul.star > li::before {
   color: var(--red);
 }
 
+/* Buttons fill with colour from left to right on hover. */
 .btn {
+  --fill: var(--accent-strong);
   display: inline-flex;
   align-items: center;
   gap: 0.5ch;
@@ -236,22 +280,25 @@ ul.star > li::before {
   font: inherit;
   font-size: var(--fs-sm);
   text-decoration: none;
-  background: transparent;
+  background: linear-gradient(var(--fill), var(--fill)) no-repeat 0 0 / 0% 100% transparent;
   cursor: pointer;
+  transition:
+    background-size var(--hover-t) var(--hover-ease),
+    color var(--hover-t) var(--hover-ease),
+    border-color var(--hover-t) var(--hover-ease);
 }
 .btn:hover {
-  background: var(--accent-soft);
+  background-size: 100% 100%;
+  border-color: var(--fill);
+  color: #fff;
   text-decoration: none;
 }
 .btn.solid {
-  background: var(--accent-strong);
+  --fill: var(--accent-stronger);
+  background-color: var(--accent-strong);
   border-color: var(--accent-strong);
   color: #fff;
   font-weight: 700;
-}
-.btn.solid:hover {
-  background: var(--accent-stronger);
-  border-color: var(--accent-stronger);
 }
 
 .panel {
@@ -385,7 +432,7 @@ ul.star > li::before {
   color: var(--hl);
   background: color-mix(in oklab, var(--hl) 16%, transparent);
 }
-.hl-blue { --hl: var(--accent); }
+.hl-blue { --hl: var(--blue); }
 .hl-green { --hl: var(--green); }
 .hl-purple { --hl: var(--purple); }
 .hl-pink { --hl: var(--pink); }
@@ -397,6 +444,9 @@ ul.star > li::before {
   .panel,
   .hl {
     border: 1px solid CanvasText;
+  }
+  .btn {
+    background-image: none;
   }
   .btn.solid {
     forced-color-adjust: none;
@@ -419,7 +469,7 @@ ul.star > li::before {
     --text: #111;
     --text-strong: #000;
     --muted: #444;
-    --accent: #0047a3;
+    --accent: #a80f2b;
   }
   .site-header,
   .site-footer,

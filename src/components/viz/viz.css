@@ -1,5 +1,5 @@
 .viz-frame {
-  --viz-blue: var(--accent);
+  --viz-blue: var(--blue);
   --viz-green: var(--green);
   --viz-purple: var(--purple);
   --viz-pink: var(--pink);

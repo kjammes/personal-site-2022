@@ -19,7 +19,7 @@ const links = [
         {
           links.map(({ label, name, href }) => (
             <li>
-              <a class="plain" href={href} rel={href.startsWith('http') ? 'me noopener' : undefined}>
+              <a class="plain sweep" href={href} rel={href.startsWith('http') ? 'me noopener' : undefined}>
                 {label === name.toLowerCase() ? label : <><span aria-hidden="true">{label}</span><span class="sr-only">{name}</span></>}
               </a>
             </li>
