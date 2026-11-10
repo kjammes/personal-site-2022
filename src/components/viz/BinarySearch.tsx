@@ -274,8 +274,8 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
           })}
           {step && step.cmp !== 'miss' && (
             <>
-              <Marker x={step.lo * (CELL + GAP) + CELL / 2} label="lo" color="var(--accent)" y={TOP + CELL + 36} />
-              <Marker x={step.hi * (CELL + GAP) + CELL / 2} label="hi" color="var(--accent)" y={TOP + CELL + 36} />
+              <Marker x={step.lo * (CELL + GAP) + CELL / 2} label="lo" color="var(--viz-blue)" y={TOP + CELL + 36} />
+              <Marker x={step.hi * (CELL + GAP) + CELL / 2} label="hi" color="var(--viz-blue)" y={TOP + CELL + 36} />
             </>
           )}
         </svg>
@@ -339,7 +339,7 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
         .bs-cell text { fill: var(--text); font: 600 14px var(--font); transition: fill var(--t), opacity var(--t); }
         .bs-cell .bs-index { fill: var(--muted); font-size: 11px; font-weight: 400; }
         .bs-cell .bs-tag { font-size: 11px; font-weight: 700; }
-        .bs-in rect { stroke: var(--accent); }
+        .bs-in rect { stroke: var(--viz-blue); }
         .bs-out rect { opacity: 0.45; stroke-dasharray: 3 3; }
         .bs-out text:not(.bs-index) { opacity: 0.6; }
         .bs-mid rect { fill: color-mix(in oklab, var(--purple) 26%, var(--bg-raised)); stroke: var(--purple); stroke-width: 3; }
@@ -376,7 +376,7 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
           transition: background var(--t), border-color var(--t), opacity var(--t), color var(--t);
         }
         .bs-row-tag { font: 700 12px var(--font); white-space: nowrap; }
-        .bs-in .bs-row-cell { border-color: var(--accent); }
+        .bs-in .bs-row-cell { border-color: var(--viz-blue); }
         .bs-out .bs-row-cell { opacity: 0.45; border-style: dashed; }
         .bs-mid .bs-row-cell { background: color-mix(in oklab, var(--purple) 26%, var(--bg-raised)); border: 3px solid var(--purple); color: var(--purple); }
         .bs-mid .bs-row-tag { color: var(--purple); }
@@ -384,7 +384,7 @@ export default function BinarySearch({ size = 15, seed = 7, initialTarget, scrip
         .bs-found .bs-row-tag { color: var(--green); }
         .bs-vmarker {
           position: absolute; top: 0; left: 0; width: 2.6rem; text-align: right;
-          color: var(--accent); font: 700 12px var(--font);
+          color: var(--viz-blue); font: 700 12px var(--font);
           transition: transform var(--t);
         }
         .bs-zoom {

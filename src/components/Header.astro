@@ -1,28 +1,31 @@
 ---
+import Logo from '@/components/Logo.astro';
 import { nav, site } from '@/data/site';
 
-const path = Astro.url.pathname;
+// With build.format 'file' the build sees paths like /blog.html, so drop the extension and any trailing slash.
+const path = Astro.url.pathname.replace(/\.html$/, '').replace(/\/$/, '');
 const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
 ---
 
 <header class="site-header">
   <div class="container bar">
     <a class="brand plain" href="/">
-      <span class="caret" aria-hidden="true">&gt;</span> jayesh<span class="muted">.karli</span><span class="sr-only">, home</span>
+      <Logo class="mark" />
+      <span>jayesh<span class="tld">.karli</span></span><span class="sr-only">, home</span>
     </a>
     <nav aria-label="Main">
       <ul>
         {
           nav.map((item) => (
             <li>
-              <a class="plain" href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+              <a class="plain sweep" href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
                 {item.label}
               </a>
             </li>
           ))
         }
         <li>
-          <a class="plain" href={site.resumeUrl} target="_blank" rel="noopener">resume</a>
+          <a class="plain sweep" href={site.resumeUrl} target="_blank" rel="noopener">resume</a>
         </li>
       </ul>
     </nav>
@@ -49,17 +52,25 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
   .brand {
     display: inline-flex;
     align-items: center;
+    gap: 1.25ch;
     min-height: 2.75rem;
     color: var(--text-strong);
     font-weight: 700;
     white-space: nowrap;
+    background-image: none;
   }
-  .brand:hover {
-    text-decoration: none;
+  .brand :global(.mark) {
+    transition: transform var(--hover-t) var(--hover-ease);
   }
-  .caret {
+  .brand:hover :global(.mark) {
+    transform: rotate(-8deg) scale(1.06);
+  }
+  .tld {
+    color: var(--muted);
+    transition: color var(--hover-t) var(--hover-ease);
+  }
+  .brand:hover .tld {
     color: var(--red);
-    margin-right: 1ch;
   }
   ul {
     display: flex;
@@ -79,16 +90,13 @@ const isActive = (href: string) => path === href || path.startsWith(`${href}/`);
     padding: 0 0.5rem;
     color: var(--muted);
   }
-  nav a:hover,
-  nav a[aria-current='page'] {
+  nav a:hover {
     color: var(--text-strong);
   }
-  /* The current page is marked by an underline as well as colour. */
+  /* Current page: red, bold, and the underline stays drawn, so it is not marked by colour alone. */
   nav a[aria-current='page'] {
-    text-decoration: underline;
-    text-decoration-thickness: 2px;
-    text-decoration-color: var(--red);
-    text-underline-offset: 6px;
+    color: var(--red);
+    font-weight: 700;
   }
   /* On small or short screens a sticky bar would cover too much content, and focused elements under it. */
   @media (max-width: 30rem), (max-height: 30rem) {

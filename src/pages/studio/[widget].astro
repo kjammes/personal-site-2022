@@ -6,9 +6,11 @@
  */
 import BaseHead from '@/components/BaseHead.astro';
 import BinarySearch from '@/components/viz/BinarySearch';
+import BTree from '@/components/viz/BTree';
+import BPlusTree from '@/components/viz/BPlusTree';
 
 export function getStaticPaths() {
-  return [{ params: { widget: 'binary-search' } }];
+  return [{ params: { widget: 'binary-search' } }, { params: { widget: 'b-tree' } }, { params: { widget: 'b-plus-tree' } }];
 }
 
 const { widget } = Astro.params;
@@ -22,6 +24,26 @@ const { widget } = Astro.params;
   <body class="studio">
     <main>
       {widget === 'binary-search' && <BinarySearch client:only="react" size={15} seed={7} script={[44, 9, 61, 30]} />}
+      {
+        widget === 'b-tree' && (
+          <BTree
+            client:only="react"
+            count={14}
+            seed={11}
+            script={[{ op: 'search', v: 74 }, { op: 'insert', v: 62 }, { op: 'insert', v: 70 }, { op: 'search', v: 38 }]}
+          />
+        )
+      }
+      {
+        widget === 'b-plus-tree' && (
+          <BPlusTree
+            client:only="react"
+            count={14}
+            seed={11}
+            script={[{ op: 'search', v: 74 }, { op: 'insert', v: 35 }, { op: 'insert', v: 36 }, { op: 'range', from: 20, to: 70 }]}
+          />
+        )
+      }
     </main>
     <script>
       import { setSpeed } from '@/components/viz/speed';

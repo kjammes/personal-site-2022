@@ -1,0 +1,109 @@
+---
+title: "B-trees, visualized"
+description: "How a B-tree keeps millions of keys only three or four disk reads away, and how node splits keep it balanced. With an interactive tree to search and insert into."
+pubDate: 2026-11-10
+tags: ["algorithms", "databases"]
+series: "Data structures behind databases"
+draft: false
+---
+
+import BTree from '@/components/viz/BTree';
+import SpeedControl from '@/components/viz/SpeedControl';
+
+## Where binary search falls short
+
+In [Binary search, visualized](/blog/binary-search-visualized) we found a value among a billion sorted values in at most 30 comparisons. That is fast when the array sits in memory. A database index lives on disk, and there the cost that matters is not comparisons but **disk reads**.
+
+A disk, even an SSD, reads data in pages of a few kilobytes. Each of the 30 jumps that binary search makes lands far from the last one, so each jump reads a different page. Thirty page reads per lookup is far too slow for a database that answers thousands of queries a second.
+
+A B-tree fixes this by doing more work per page. Instead of one value per step, each node holds many sorted keys, and the whole node is one page. You read a node once, binary search inside it in memory, and follow one pointer down.
+
+## Try it
+
+The tree below holds 14 keys, with at most 3 keys per node. Press <Hl c="blue">Search</Hl> and watch it read one node per level. The node being read is outlined in <Hl c="purple">purple</Hl>, and each key it compares against lights up. To go one comparison at a time, press the <Hl c="blue">Step</Hl> button next to Search instead.
+
+Then press <Hl c="green">Insert</Hl>. The suggested value lands in a full leaf, so you can watch that leaf get <Hl c="pink">too full</Hl> and split. The <Hl c="green">Step</Hl> button next to Insert does the same insert one move at a time: the walk down, the new key landing in the leaf, and each split on the way back up.
+
+<BTree client:visible count={14} seed={11} maxKeys={3} />
+
+If the animation is too fast or too slow, change the speed for every visualization on this page:
+
+<SpeedControl client:visible />
+
+## How a node is laid out
+
+A node with `k` keys has `k + 1` child pointers. The keys split the number line into ranges, and each pointer leads to the subtree for one range:
+
+```
+          [ 32 | 64 ]
+         /     |     \
+   < 32    32 to 64   > 64
+```
+
+Every key in the left subtree is smaller than 32, every key in the middle one sits between 32 and 64, and every key on the right is larger than 64. That rule holds at every level, which is what makes search work.
+
+## Searching
+
+Start at the root and repeat:
+
+1. Read the node. This is one disk read.
+2. Binary search its keys, exactly as in the [previous article](/blog/binary-search-visualized).
+3. If a key equals the target, you are done. The key turns <Hl c="green">green</Hl>.
+4. Otherwise, the search ends between two keys. Follow the pointer between them and go down one level.
+
+If you reach a leaf and the key is not there, the tree does not contain it.
+
+```java
+static boolean contains(Node node, int target) {
+    while (node != null) {
+        // Same binary search as before, inside one node.
+        int lo = 0, hi = node.keyCount - 1;
+        while (lo <= hi) {
+            int mid = (lo + hi) >>> 1;
+            if (node.keys[mid] == target) return true;
+            if (node.keys[mid] < target) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        // lo is now the index of the child whose range holds target.
+        node = node.isLeaf ? null : node.children[lo];
+    }
+    return false;
+}
+```
+
+Search for a key that lives in the root or a middle level, such as 38 or 64. A B-tree stores every key exactly once, and some keys live in internal nodes, so some searches stop before they reach a leaf. Keep that in mind: the [B+ tree](/blog/b-plus-tree-visualized) changes it.
+
+## Inserting and splitting
+
+New keys always go into a leaf:
+
+1. Search for the key as above, down to the leaf where it belongs.
+2. Insert it into that leaf in sorted order.
+3. If the leaf now has more keys than fit, **split** it. The middle key moves up into the parent, the keys left of it stay in the old node, and the keys right of it go into a new node.
+4. The parent gained a key, so it might be too full now as well. If it is, split it the same way, and keep going up.
+5. If the root splits, the middle key becomes a new root.
+
+<Callout kind="note" title="Trees grow at the top">
+A B-tree never adds a level below the leaves. It only grows when the root splits and a new root appears above it. That is why every leaf is always at the same depth, and why no lookup is ever slower than the height of the tree.
+</Callout>
+
+Keep pressing <Hl c="green">Insert</Hl> in the widget, or <Hl c="green">Step</Hl> to pause on each split. Most inserts touch only one leaf. Every so often a split cascades all the way up and the tree gets one level taller.
+
+A split also leaves both halves about half full. Each node is therefore between half full and full, apart from the root, so the tree never wastes much space and never drifts out of balance. Deleting keys works in reverse, borrowing from or merging with a neighbouring node when one gets too empty. This article skips deletes.
+
+## Fan-out is the whole point
+
+Switch **Max keys per node** in the widget from 3 to 5. The same 14 keys now fit in fewer, wider nodes, and the tree is shorter. Real databases take this much further. MySQL's InnoDB uses 16 KB pages by default and PostgreSQL uses 8 KB pages. A 16 KB page holding 8-byte keys and pointers fits several hundred children per node. Call it 500:
+
+| levels | keys reachable with about 500 children per node |
+| --- | --- |
+| 1 | about 500 |
+| 2 | about 250,000 |
+| 3 | about 125 million |
+| 4 | about 62 billion |
+
+The number of comparisons barely changes. Binary search inside a 500-key node takes about 9 comparisons, and four levels take about 36, which is what plain binary search would need over 62 billion values. What changes is the disk reads: 4 instead of 36. The root and the level below it are read so often that they stay cached in memory, so a lookup usually costs one or two reads from disk.
+
+## What comes next
+
+Databases rarely use this exact textbook structure. MySQL and PostgreSQL both build their indexes on a variant, the B+ tree, which keeps every value in the leaves and links the leaves together so that range queries such as `WHERE id BETWEEN 20 AND 60` become a single walk along the bottom of the tree. That is [the next article in this series](/blog/b-plus-tree-visualized).
