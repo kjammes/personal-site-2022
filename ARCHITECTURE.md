@@ -45,7 +45,7 @@ The visual reference is PlanetScale's B-tree article: a narrow text column, a st
     ├── data/site.ts          All profile data: identity, socials, experience, stack, projects
     ├── lib/
     │   ├── content.ts        Collection queries, draft filtering, tag slugs, dates, reading time
-    │   └── stats.ts          Build-time stats: years of experience, LeetCode solved count
+    │   └── stats.ts          Build-time stats: years of experience, month formatting
     ├── layouts/Base.astro    HTML shell: head, header, main, footer
     ├── components/
     │   ├── BaseHead.astro    Title, description, canonical, Open Graph, Twitter, JSON-LD
@@ -137,7 +137,7 @@ Schemas live in `src/content.config.ts`. Zod validates frontmatter at build time
 
 ### Profile data
 
-Everything about the person, rather than an article, lives in `src/data/site.ts`: name, role, headline, email, booking link, resume link, career start dates, LeetCode username, socials, `knowsAbout` topics, nav items, experience, education, stack and projects. Change the copy here, not in the pages.
+Everything about the person, rather than an article, lives in `src/data/site.ts`: name, role, headline, email, booking link, resume link, career start dates, socials, `knowsAbout` topics, nav items, experience, education, stack and projects. Change the copy here, not in the pages.
 
 Setting `bookingUrl` switches every "send an email" and "get in touch" call to action to "book a call".
 
@@ -148,9 +148,9 @@ Setting `bookingUrl` switches every "send an email" and "get in touch" call to a
 `src/lib/stats.ts` replaces the old site's runtime JavaScript.
 
 - **Experience years** are computed from `careerStart` and `codingStart` when the site builds.
-- **LeetCode solved count** is fetched once per build from LeetCode's public GraphQL endpoint, with an 8 second timeout. On any failure it returns `null` and the homepage hides that stat rather than showing a wrong number.
+- **Homepage impact numbers** (systems owned, records searched) are written in `src/pages/index.astro` and copied from the case studies in `src/content/work/`. Update both together.
 
-Both values go stale between deploys. The fix is a Netlify build hook on a daily schedule, which is not set up yet.
+The years go stale between deploys. The fix is a Netlify build hook on a daily schedule, which is not set up yet.
 
 ---
 
