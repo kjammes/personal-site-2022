@@ -10,6 +10,7 @@ draft: false
 
 import BTree from '@/components/viz/BTree';
 import SpeedControl from '@/components/viz/SpeedControl';
+import TryCase from '@/components/viz/TryCase';
 
 ## Where binary search falls short
 
@@ -27,7 +28,9 @@ Then press <Hl c="green">Insert</Hl>. The suggested value lands in a full leaf, 
 
 Finally, press <Hl c="pink">Delete</Hl>. The suggested value sits in a leaf that is already as empty as it is allowed to be, so you can watch the tree borrow a key or merge two nodes to put it right. [Deleting and merging](#deleting-and-merging) below explains each move.
 
-<BTree client:visible count={14} seed={11} maxKeys={3} />
+Further down, each special case has its own **Watch** and **Step through** buttons. They scroll back to this tree, set it up the way that case needs, and run it.
+
+<BTree client:visible count={14} seed={11} maxKeys={3} caseId="btree" />
 
 If the animation is too fast or too slow, change the speed for every visualization on this page:
 
@@ -56,6 +59,8 @@ Start at the root and repeat:
 
 If you reach a leaf and the key is not there, the tree does not contain it.
 
+<TryCase client:visible widget="btree" run="search 50" label="Search for a missing key" />
+
 ```java
 static boolean contains(Node node, int target) {
     while (node != null) {
@@ -76,15 +81,21 @@ static boolean contains(Node node, int target) {
 
 Search for a key that lives in the root or a middle level, such as 38 or 64. A B-tree stores every key exactly once, and some keys live in internal nodes, so some searches stop before they reach a leaf. Keep that in mind: the [B+ tree](/blog/b-plus-tree-visualized) changes it.
 
+<TryCase client:visible widget="btree" run="search 38" label="Search stops in an internal node" />
+
 ## Inserting and splitting
 
 New keys always go into a leaf:
 
 1. Search for the key as above, down to the leaf where it belongs.
 2. Insert it into that leaf in sorted order.
+   <TryCase client:visible widget="btree" run="insert 35" label="Insert into a leaf with room" />
 3. If the leaf now has more keys than fit, **split** it. The middle key moves up into the parent, the keys left of it stay in the old node, and the keys right of it go into a new node.
+   <TryCase client:visible widget="btree" run="insert 44" label="A full leaf splits" />
 4. The parent gained a key, so it might be too full now as well. If it is, split it the same way, and keep going up.
+   <TryCase client:visible widget="btree" run="insert 22" setup="insert 44; insert 70; insert 9" label="The split moves up to the parent" />
 5. If the root splits, the middle key becomes a new root.
+   <TryCase client:visible widget="btree" run="insert 42" setup="insert 44; insert 70; insert 9; insert 22; insert 59; insert 48; insert 2; insert 4; insert 65; insert 66; insert 41; insert 43; insert 6; insert 1; insert 3; insert 40" label="The root splits and the tree grows" />
 
 <Callout kind="note" title="Trees grow at the top">
 A B-tree never adds a level below the leaves. It only grows when the root splits and a new root appears above it. That is why every leaf is always at the same depth, and why no lookup is ever slower than the height of the tree.
@@ -100,11 +111,17 @@ Deleting is inserting run backwards. Where an insert splits a node that gets too
 
 1. Search for the key.
 2. If it sits in an internal node, it cannot just be removed, because it separates two children. Replace it with its **predecessor**, the largest key in the subtree to its left. That key is always in a leaf, so now the key to remove is in a leaf.
+   <TryCase client:visible widget="btree" run="delete 64" label="Swap in the predecessor" />
 3. Remove the key from the leaf. If the leaf still has at least the minimum, you are done.
+   <TryCase client:visible widget="btree" run="delete 61" label="The leaf still has enough keys" />
 4. Otherwise, read a neighbouring node with the same parent. If it has a key to spare, **borrow** it through the parent: the separator between the two nodes comes down into the too-empty node, and the neighbour's nearest key goes up to take its place.
+   <TryCase client:visible widget="btree" run="delete 82" label="Borrow through the parent" />
 5. If no neighbour can spare a key, **merge**. The separator comes down from the parent, and the two nodes and the separator become one node.
+   <TryCase client:visible widget="btree" run="delete 39" setup="delete 61; delete 63" label="Merge with a neighbour" />
 6. The parent lost a key in the merge, so it might be too empty now as well. If it is, repair it the same way, and keep going up.
+   <TryCase client:visible widget="btree" run="delete 67" setup="delete 82; delete 34; delete 80" label="Merge, then the parent borrows" />
 7. If the root loses its last key, the merged node below it becomes the new root.
+   <TryCase client:visible widget="btree" run="delete 8" setup="delete 82; delete 34; delete 80; delete 67" label="Two merges, and the tree shrinks" />
 
 Borrowing goes through the parent because of the ordering rule. Delete 82 from the starting tree and its leaf is left empty. The left neighbour has keys to spare, but its 74 cannot move straight across, because the parent's 80 says that everything on the right is larger than 80. So 80 comes down and 74 goes up:
 
@@ -120,7 +137,7 @@ Every key is still in order, and both leaves hold at least one key.
 A merge never removes a level in the middle of the tree. The tree only gets shorter when the root gives up its last key to a merge, and then every leaf moves up together. Just like growth, shrinking keeps every leaf at the same depth.
 </Callout>
 
-Try it in the widget. Press Reset, then press <Hl c="pink">Delete</Hl> with each suggested value in turn:
+The buttons in the steps above set up each case for you. To play the whole sequence by hand instead, press Reset in the widget, then press <Hl c="pink">Delete</Hl> with each suggested value in turn:
 
 * **82, 34 and 80** each empty a leaf, and the leaf borrows through its parent.
 * **67** empties a leaf whose only neighbour has nothing to spare, so the two merge. That leaves the parent empty, and the parent borrows from its own neighbour. Notice that a child pointer moves across along with the key.

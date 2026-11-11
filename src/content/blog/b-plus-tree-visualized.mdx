@@ -10,6 +10,7 @@ draft: false
 
 import BPlusTree from '@/components/viz/BPlusTree';
 import SpeedControl from '@/components/viz/SpeedControl';
+import TryCase from '@/components/viz/TryCase';
 
 ## Two small changes
 
@@ -33,7 +34,9 @@ The tree below holds the same 14 keys as the B-tree in the previous article, wit
 
 Press <Hl c="blue">Search</Hl> and the search always goes all the way down to a leaf. Press <Hl c="green">Insert</Hl> to add keys until a leaf <Hl c="pink">splits</Hl>, and <Hl c="pink">Delete</Hl> to remove them until leaves borrow and merge. Then try a <Hl c="amber">Range scan</Hl>: it goes down the tree once, then walks sideways along the linked leaves. Each operation has its own Step button, <Hl c="blue">Step</Hl>, <Hl c="green">Step</Hl>, <Hl c="pink">Step</Hl> and <Hl c="amber">Step</Hl>, which runs it one move at a time. Stepping through an insert is the best way to see a leaf split copy a key up.
 
-<BPlusTree client:visible count={14} seed={11} maxKeys={3} />
+Further down, each special case has its own **Watch** and **Step through** buttons. They scroll back to this tree, set it up the way that case needs, and run it.
+
+<BPlusTree client:visible count={14} seed={11} maxKeys={3} caseId="bplus" />
 
 If the animation is too fast or too slow, change the speed for every visualization on this page:
 
@@ -42,6 +45,8 @@ If the animation is too fast or too slow, change the speed for every visualizati
 ## Searching always ends at a leaf
 
 In a B-tree, a search can stop early when it meets the key in an internal node. In a B+ tree, internal nodes only route. A separator `s` means "keys smaller than `s` are on the left, and keys from `s` upward are on the right". So when the target equals a separator, the search goes right and keeps going down.
+
+<TryCase client:visible widget="bplus" run="search 64" label="Target equals a separator" />
 
 ```java
 static boolean contains(Node node, int target) {
@@ -75,6 +80,8 @@ The new right leaf also joins the chain: the left leaf now points to it, and it 
 
 When an **internal** node splits, nothing has to stay behind, so its middle key moves up just as it does in a B-tree. Watch for both cases in the widget's status line as a split cascades upward.
 
+<TryCase client:visible widget="bplus" run="insert 35" setup="insert 33" label="Leaf split copies up, then the parent splits" />
+
 <Callout kind="note" title="Same balance guarantee">
 A B+ tree still grows only at the root, so every leaf stays at the same depth, and every node apart from the root stays at least half full.
 </Callout>
@@ -89,13 +96,19 @@ Deletes follow the [B-tree's rules](/blog/b-tree-visualized#deleting-and-merging
 Leaves must stay at least half full. In the widget, with at most 3 keys per node, every leaf apart from the root keeps at least 2 keys. When a leaf falls below that:
 
 * **Borrow** from a neighbouring leaf that has a key to spare. The key moves straight across, because every key must stay in a leaf, and the separator between the two leaves is updated to a copy of the right leaf's new first key.
+  <TryCase client:visible widget="bplus" run="delete 39" setup="delete 10" label="Borrow from a neighbouring leaf" />
 * **Merge** with a neighbouring leaf when neither can spare a key. The keys join one leaf, the separator between them is simply dropped from the parent, and the leaf chain skips over the leaf that went away.
+  <TryCase client:visible widget="bplus" run="delete 10" label="Merge two leaves" />
 
 This mirrors insertion. A leaf split copies a separator up, and a leaf merge drops one. Internal nodes split, borrow and merge exactly as in a B-tree, with keys moving through the parent.
 
 To watch it, press Reset, then press <Hl c="pink">Delete</Hl> with each suggested value in turn. The first, 10, leaves its leaf with one key and merges it with its neighbour. The second, 39, borrows 34 from the leaf on its left instead. The sixth, 80, merges a leaf, which empties its parent, which merges in turn and pulls down the root's only key, so the tree loses a level.
 
+<TryCase client:visible widget="bplus" run="delete 80" setup="delete 10; delete 39; delete 32; delete 67; delete 82" label="Merges cascade and the tree shrinks" />
+
 Then press Reset and delete 64. Its leaf merges with a neighbour, but the separator 64 at the root stays where it is. The widget highlights it at the end. Searches still route correctly: anything smaller than 64 goes left and anything from 64 upward goes right.
+
+<TryCase client:visible widget="bplus" run="delete 64" label="A separator outlives its key" />
 
 Like the B-tree, this is the textbook version. InnoDB and PostgreSQL both rebalance less eagerly, as the [B-tree article](/blog/b-tree-visualized#deleting-and-merging) describes, and a later article in this series will look at how each handles deletes.
 
@@ -111,6 +124,8 @@ A B+ tree answers it in two phases:
 
 1. Search down to the leaf where 20 would be. That is one read per level, the same as any lookup.
 2. Read keys from there in order, and when a leaf runs out, follow its next pointer to the neighbouring leaf. Stop at the first key larger than 60.
+
+<TryCase client:visible widget="bplus" run="range 20 60" label="Range scan from 20 to 60" />
 
 Apart from the leaves at either end, every leaf read in the second phase is full of matching keys. The cost is the height of the tree plus the number of leaves the range covers, and nothing above the leaves is read twice.
 
