@@ -1,7 +1,8 @@
 ---
 title: "B-trees, visualized"
-description: "How a B-tree keeps millions of keys only three or four disk reads away, and how node splits keep it balanced. With an interactive tree to search and insert into."
+description: "How a B-tree keeps millions of keys three or four disk reads away, and how splits and merges keep it balanced. With an interactive tree to search, insert and delete."
 pubDate: 2026-11-10
+updatedDate: 2026-11-11
 tags: ["algorithms", "databases"]
 series: "Data structures behind databases"
 draft: false
@@ -23,6 +24,8 @@ A B-tree fixes this by doing more work per page. Instead of one value per step, 
 The tree below holds 14 keys, with at most 3 keys per node. Press <Hl c="blue">Search</Hl> and watch it read one node per level. The node being read is outlined in <Hl c="purple">purple</Hl>, and each key it compares against lights up. To go one comparison at a time, press the <Hl c="blue">Step</Hl> button next to Search instead.
 
 Then press <Hl c="green">Insert</Hl>. The suggested value lands in a full leaf, so you can watch that leaf get <Hl c="pink">too full</Hl> and split. The <Hl c="green">Step</Hl> button next to Insert does the same insert one move at a time: the walk down, the new key landing in the leaf, and each split on the way back up.
+
+Finally, press <Hl c="pink">Delete</Hl>. The suggested value sits in a leaf that is already as empty as it is allowed to be, so you can watch the tree borrow a key or merge two nodes to put it right. [Deleting and merging](#deleting-and-merging) below explains each move.
 
 <BTree client:visible count={14} seed={11} maxKeys={3} />
 
@@ -89,7 +92,43 @@ A B-tree never adds a level below the leaves. It only grows when the root splits
 
 Keep pressing <Hl c="green">Insert</Hl> in the widget, or <Hl c="green">Step</Hl> to pause on each split. Most inserts touch only one leaf. Every so often a split cascades all the way up and the tree gets one level taller.
 
-A split also leaves both halves about half full. Each node is therefore between half full and full, apart from the root, so the tree never wastes much space and never drifts out of balance. Deleting keys works in reverse, borrowing from or merging with a neighbouring node when one gets too empty. This article skips deletes.
+A split also leaves both halves about half full. Each node is therefore between half full and full, apart from the root, so the tree never wastes much space and never drifts out of balance. Deletes have to keep that rule too.
+
+## Deleting and merging
+
+Deleting is inserting run backwards. Where an insert splits a node that gets too full, a delete repairs a node that gets **too empty**. With at most `m` keys per node, every node apart from the root must keep at least `m / 2` keys, rounded down. In the widget, with at most 3 keys per node, that minimum is 1.
+
+1. Search for the key.
+2. If it sits in an internal node, it cannot just be removed, because it separates two children. Replace it with its **predecessor**, the largest key in the subtree to its left. That key is always in a leaf, so now the key to remove is in a leaf.
+3. Remove the key from the leaf. If the leaf still has at least the minimum, you are done.
+4. Otherwise, read a neighbouring node with the same parent. If it has a key to spare, **borrow** it through the parent: the separator between the two nodes comes down into the too-empty node, and the neighbour's nearest key goes up to take its place.
+5. If no neighbour can spare a key, **merge**. The separator comes down from the parent, and the two nodes and the separator become one node.
+6. The parent lost a key in the merge, so it might be too empty now as well. If it is, repair it the same way, and keep going up.
+7. If the root loses its last key, the merged node below it becomes the new root.
+
+Borrowing goes through the parent because of the ordering rule. Delete 82 from the starting tree and its leaf is left empty. The left neighbour has keys to spare, but its 74 cannot move straight across, because the parent's 80 says that everything on the right is larger than 80. So 80 comes down and 74 goes up:
+
+```
+  before:       [ 80 ]                after:      [ 74 ]
+               /      \                          /      \
+    [ 67 | 69 | 74 ]  [ ]                [ 67 | 69 ]   [ 80 ]
+```
+
+Every key is still in order, and both leaves hold at least one key.
+
+<Callout kind="note" title="Trees shrink at the top">
+A merge never removes a level in the middle of the tree. The tree only gets shorter when the root gives up its last key to a merge, and then every leaf moves up together. Just like growth, shrinking keeps every leaf at the same depth.
+</Callout>
+
+Try it in the widget. Press Reset, then press <Hl c="pink">Delete</Hl> with each suggested value in turn:
+
+* **82, 34 and 80** each empty a leaf, and the leaf borrows through its parent.
+* **67** empties a leaf whose only neighbour has nothing to spare, so the two merge. That leaves the parent empty, and the parent borrows from its own neighbour. Notice that a child pointer moves across along with the key.
+* **8** sets off two merges in a row. The second one pulls down the root's only key, and the tree loses a level.
+
+To see the predecessor swap, press Reset and delete 64, the root. Its predecessor, 63, moves up from a leaf to take its place. Use the <Hl c="pink">Step</Hl> button next to Delete to pause on each read, borrow and merge.
+
+Real databases are lazier than this. Rebalancing after every delete costs extra writes, and a page that has just emptied is often filled again by the next inserts. InnoDB tries to merge an index page with a neighbour only once it falls below a fill threshold, `MERGE_THRESHOLD`, which defaults to 50%. PostgreSQL does not merge half-empty pages at all: `VACUUM` removes deleted entries later, and only pages that end up completely empty are taken out of the tree. A later article in this series will look at how each of them handles deletes.
 
 ## Fan-out is the whole point
 

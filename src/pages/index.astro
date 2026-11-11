@@ -4,19 +4,19 @@ import { Picture } from 'astro:assets';
 import PostList from '@/components/PostList.astro';
 import portrait from '@/assets/portrait.jpg';
 import { education, experience, site, stack } from '@/data/site';
-import { formatMonth, leetcodeSolved, yearsSince } from '@/lib/stats';
+import { formatMonth, yearsSince } from '@/lib/stats';
 import { getPosts } from '@/lib/content';
 
 const coding = yearsSince(site.codingStart);
 const professional = yearsSince(site.careerStart);
-const solved = await leetcodeSolved();
 const posts = (await getPosts()).slice(0, 3);
 const contactHref = site.bookingUrl || `mailto:${site.email}`;
 
+// Figures come from the case studies in src/content/work. Keep them in sync.
 const stats = [
+  { value: `${coding}+`, label: 'years coding' },
   { value: `${professional}+`, label: 'years shipping production systems' },
-  { value: `${coding}+`, label: 'years writing software' },
-  ...(solved ? [{ value: String(solved), label: 'LeetCode problems solved' }] : []),
+  { value: 'Multiple', label: 'Mission-critical production systems owned' },
 ];
 ---
 
@@ -73,9 +73,10 @@ const stats = [
     <section aria-labelledby="what">
       <h2 class="h" id="what">What I do</h2>
       <ul class="star narrow">
-        <li><strong>Backend systems that hold up under load.</strong> Spring Boot and Node.js services, event pipelines on Kafka, search on Elasticsearch, and the data models underneath them.</li>
-        <li><strong>SaaS products, end to end.</strong> Auth, billing, multi-tenancy, background jobs, observability, and the dull details that decide whether a product survives its first big customer.</li>
-        <li><strong>AI-accelerated delivery.</strong> I use coding agents and LLM tooling to move fast while keeping the software reliable and the quality bar very high.</li>
+        <li><strong>Distributed backends.</strong> Spring Boot and Node.js services, Kafka between them, Redis in front of them.</li>
+        <li><strong>Data at scale.</strong> Schemas and search that stay fast as the data grows.</li>
+        <li><strong>Full stack when needed.</strong> React and Angular frontends, built end to end.</li>
+        <li><strong>AI-accelerated delivery.</strong> Coding agents to ship fast, with the quality bar kept high.</li>
       </ul>
     </section>
 

@@ -3,16 +3,15 @@ export const site = {
   url: 'https://www.jayeshkarli.dev',
   role: 'Senior Software Engineer',
   headline:
-    'Senior backend engineer. I design and ship data-heavy SaaS systems, and I use AI tooling to deliver them fast without trading away reliability.',
+    'Senior backend engineer. I build distributed systems that stay fast at large data volumes, and ship the full stack when a product needs it.',
   description:
-    'Jayesh Karli is a senior backend engineer who builds scalable, data-heavy SaaS products with Spring Boot, Node.js, Kafka and Elasticsearch, using AI tooling to ship fast and reliably.',
+    'Jayesh Karli is a senior backend engineer who builds distributed systems and data-heavy products with Spring Boot, Kafka and Elasticsearch, and ships full stack when needed.',
   email: 'jayeshkarli@gmail.com',
   /** Cal.com or similar booking link. Leave empty to hide booking buttons. */
   bookingUrl: '',
   resumeUrl: 'https://drive.google.com/file/d/1kYV7N8KsQZEhQA0yMyaZxw_1q70vowyH/view?usp=sharing',
   careerStart: '2021-06-14',
   codingStart: '2018-08-01',
-  leetcodeUsername: 'karli',
   socials: {
     github: 'https://github.com/kjammes',
     linkedin: 'https://www.linkedin.com/in/jayesh-karli-2b95b01a9/',
@@ -36,6 +35,9 @@ export const site = {
     'Docker',
     'Kubernetes',
     'Microservices',
+    'Distributed systems',
+    'Event-driven architecture',
+    'Search at scale',
     'System design',
     'AI-assisted software engineering',
   ],
@@ -65,7 +67,7 @@ export const education = [
 export const stack = [
   { group: 'backend', items: ['Spring Boot (Java, Kotlin)', 'Node.js, Express (TypeScript)'] },
   { group: 'data', items: ['Kafka', 'Elasticsearch', 'MySQL, Postgres', 'MongoDB', 'Redis'] },
-  { group: 'platform', items: ['Docker', 'Kubernetes', 'Microservices'] },
+  { group: 'platform', items: ['Microservices', 'Event-driven architecture', 'Docker', 'Kubernetes'] },
   { group: 'frontend', items: ['TypeScript', 'React', 'Angular'] },
 ] as const;
 

@@ -30,7 +30,7 @@ npm run build    # type checks, then static build to dist/
 
 ## Stats
 
-Experience years are computed at build time from `careerStart` and `codingStart`. The LeetCode count is fetched at build time and hidden if the request fails. Add a Netlify build hook on a daily schedule to keep both fresh.
+Experience years are computed at build time from `careerStart` and `codingStart`. Add a Netlify build hook on a daily schedule to keep them fresh. The homepage impact numbers are copied from the case studies in `src/content/work/`, so update both together.
 
 ## Domain
 
