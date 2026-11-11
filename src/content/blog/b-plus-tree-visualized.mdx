@@ -2,6 +2,7 @@
 title: "B+ trees, visualized"
 description: "Why almost every database index is a B+ tree: values only in the leaves, leaves linked in order, and range scans that never climb back up. With an interactive tree."
 pubDate: 2026-11-10
+updatedDate: 2026-11-11
 tags: ["algorithms", "databases"]
 series: "Data structures behind databases"
 draft: false
@@ -30,7 +31,7 @@ This article sticks to the textbook version. Later articles in this series will 
 
 The tree below holds the same 14 keys as the B-tree in the previous article, with at most 3 keys per node. Notice that some keys, such as 32 and 64, appear twice: once as a separator, and again in a leaf.
 
-Press <Hl c="blue">Search</Hl> and the search always goes all the way down to a leaf. Press <Hl c="green">Insert</Hl> to add keys until a leaf <Hl c="pink">splits</Hl>. Then try a <Hl c="amber">Range scan</Hl>: it goes down the tree once, then walks sideways along the linked leaves. Each operation has its own Step button, <Hl c="blue">Step</Hl>, <Hl c="green">Step</Hl> and <Hl c="amber">Step</Hl>, which runs it one move at a time. Stepping through an insert is the best way to see a leaf split copy a key up.
+Press <Hl c="blue">Search</Hl> and the search always goes all the way down to a leaf. Press <Hl c="green">Insert</Hl> to add keys until a leaf <Hl c="pink">splits</Hl>, and <Hl c="pink">Delete</Hl> to remove them until leaves borrow and merge. Then try a <Hl c="amber">Range scan</Hl>: it goes down the tree once, then walks sideways along the linked leaves. Each operation has its own Step button, <Hl c="blue">Step</Hl>, <Hl c="green">Step</Hl>, <Hl c="pink">Step</Hl> and <Hl c="amber">Step</Hl>, which runs it one move at a time. Stepping through an insert is the best way to see a leaf split copy a key up.
 
 <BPlusTree client:visible count={14} seed={11} maxKeys={3} />
 
@@ -78,6 +79,26 @@ When an **internal** node splits, nothing has to stay behind, so its middle key 
 A B+ tree still grows only at the root, so every leaf stays at the same depth, and every node apart from the root stays at least half full.
 </Callout>
 
+## Deleting from a leaf
+
+Deletes follow the [B-tree's rules](/blog/b-tree-visualized#deleting-and-merging): remove the key, and if a node drops below half full, borrow a key from a neighbour or merge with it. The two changes from the start of this article make the leaf level simpler.
+
+* **Every delete starts in a leaf.** Every key lives in a leaf, so there is no predecessor swap. Search down to the leaf and remove the key there.
+* **A separator can outlive its key.** A separator only says "smaller keys on the left, the rest on the right". Removing a key from a leaf does not make that untrue, so the separator can stay even when no leaf holds that key any more.
+
+Leaves must stay at least half full. In the widget, with at most 3 keys per node, every leaf apart from the root keeps at least 2 keys. When a leaf falls below that:
+
+* **Borrow** from a neighbouring leaf that has a key to spare. The key moves straight across, because every key must stay in a leaf, and the separator between the two leaves is updated to a copy of the right leaf's new first key.
+* **Merge** with a neighbouring leaf when neither can spare a key. The keys join one leaf, the separator between them is simply dropped from the parent, and the leaf chain skips over the leaf that went away.
+
+This mirrors insertion. A leaf split copies a separator up, and a leaf merge drops one. Internal nodes split, borrow and merge exactly as in a B-tree, with keys moving through the parent.
+
+To watch it, press Reset, then press <Hl c="pink">Delete</Hl> with each suggested value in turn. The first, 10, leaves its leaf with one key and merges it with its neighbour. The second, 39, borrows 34 from the leaf on its left instead. The sixth, 80, merges a leaf, which empties its parent, which merges in turn and pulls down the root's only key, so the tree loses a level.
+
+Then press Reset and delete 64. Its leaf merges with a neighbour, but the separator 64 at the root stays where it is. The widget highlights it at the end. Searches still route correctly: anything smaller than 64 goes left and anything from 64 upward goes right.
+
+Like the B-tree, this is the textbook version. InnoDB and PostgreSQL both rebalance less eagerly, as the [B-tree article](/blog/b-tree-visualized#deleting-and-merging) describes, and a later article in this series will look at how each handles deletes.
+
 ## Range scans
 
 Here is where the linked leaves pay off. Take a query such as:
@@ -106,6 +127,7 @@ The leaf chain is already sorted. A query with `ORDER BY id` and an index on `id
 | Where keys live | Once each, at any level | All in leaves, with separator copies above |
 | Point lookup | Can stop early in an internal node | Always reads one node per level |
 | Fan-out | Lower, because internal nodes hold rows too | Higher, because internal nodes hold only keys |
+| Delete | Can start in an internal node, which swaps in its predecessor | Always starts in a leaf. Separators can outlive their keys |
 | Range scan | In-order walk, up and down the tree | One descent, then along the leaf chain |
 | In MySQL and PostgreSQL | Not used for their indexes | InnoDB uses it as is. PostgreSQL uses a modified version |
 

@@ -7,10 +7,12 @@ import {
   isLeaf,
   keyCount,
   leaves,
+  planDelete,
   planInsert,
   planRange,
   planSearch,
   seededTree,
+  suggestDelete,
   suggestInsert,
   type Step,
   type Tree,
@@ -18,9 +20,13 @@ import {
   type Variant,
 } from './tree-core';
 
-type Op = 'search' | 'insert' | 'range';
+type Op = 'search' | 'insert' | 'delete' | 'range';
 
-export type TreeScriptOp = { op: 'search'; v: number } | { op: 'insert'; v: number } | { op: 'range'; from: number; to: number };
+export type TreeScriptOp =
+  | { op: 'search'; v: number }
+  | { op: 'insert'; v: number }
+  | { op: 'delete'; v: number }
+  | { op: 'range'; from: number; to: number };
 
 export type TreeVizProps = {
   /** Keys in the starting tree. */
@@ -98,7 +104,8 @@ function focusFor(step: Step | undefined, pos: Map<number, Box>): { focus: Rect;
     const p = pos.get(id);
     return p && { x: p.x + PAD, y: p.y + PAD, w: p.w, h: NH };
   };
-  const ids = new Set<number>(step.split ?? []);
+  const ids = new Set<number>(step.changed ?? []);
+  if (step.underflow !== undefined) ids.add(step.underflow);
   if (step.active !== undefined) {
     ids.add(step.active);
     const v = step.visited;
@@ -166,6 +173,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
   const [tree, setTree] = useState(() => seededTree(count, seed, initialMax, variant));
   const [target, setTarget] = useState(() => defaultTarget(tree));
   const [insertV, setInsertV] = useState(() => suggestInsert(tree, initialMax, variant));
+  const [deleteV, setDeleteV] = useState(() => suggestDelete(tree, initialMax, variant));
   const [range, setRange] = useState<[number, number]>(() => defaultRange(tree));
   const [steps, setSteps] = useState<Step[]>([]);
   const [cursor, setCursor] = useState(-1);
@@ -197,6 +205,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
   const shown = step?.tree ?? tree;
   const full = keyCount(tree, variant) >= MAX_KEYS_TOTAL;
   const cannotInsert = full || contains(tree, insertV, variant);
+  const cannotDelete = !contains(tree, deleteV, variant);
 
   const run = useCallback((plan: Step[], autoplay: boolean, op: Op) => {
     clearTimeout(timer.current);
@@ -222,6 +231,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
       const t = seededTree(count, seed, k, variant);
       setTree(t);
       setInsertV(suggestInsert(t, k, variant));
+      setDeleteV(suggestDelete(t, k, variant));
       return t;
     },
     [clear, count, seed, variant],
@@ -237,9 +247,24 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
     [run, variant],
   );
 
-  // Suggest the next value only once an insert has finished, so the field keeps showing the value being inserted.
+  const doDelete = useCallback(
+    (v: number, base: Tree, k: number, autoplay = true) => {
+      const r = planDelete(base, v, k, variant);
+      setTree(r.tree);
+      run(r.steps, autoplay, 'delete');
+    },
+    [run, variant],
+  );
+
+  /*
+   * Suggest the next value only once an insert or delete has finished, so the field keeps showing the
+   * value being worked on. The other field changes only if its value no longer makes sense.
+   */
   useEffect(() => {
-    if (kind === 'insert' && done) setInsertV(suggestInsert(tree, maxKeys, variant));
+    if (!done || (kind !== 'insert' && kind !== 'delete')) return;
+    if (kind === 'insert' || contains(tree, insertV, variant)) setInsertV(suggestInsert(tree, maxKeys, variant));
+    if (kind === 'delete' || !contains(tree, deleteV, variant)) setDeleteV(suggestDelete(tree, maxKeys, variant));
+    // Only rerun when an operation finishes, not when the reader types a value.
   }, [kind, done, tree, maxKeys, variant]);
 
   const inProgress = (op: Op) => kind === op && cursor >= 0 && !done;
@@ -252,6 +277,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
       setCursor((c) => c + 1);
     } else if (op === 'search') run(planSearch(tree, target, variant), false, 'search');
     else if (op === 'insert') doInsert(insertV, tree, maxKeys, false);
+    else if (op === 'delete') doDelete(deleteV, tree, maxKeys, false);
     else run(planRange(tree, range[0], range[1]), false, 'range');
   };
 
@@ -281,13 +307,15 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         run(planSearch(base, op.v, variant), true, 'search');
       } else if (op.op === 'insert') {
         doInsert(op.v, base, maxKeys);
+      } else if (op.op === 'delete') {
+        doDelete(op.v, base, maxKeys);
       } else if (variant === 'bplus') {
         setRange([op.from, op.to]);
         run(planRange(base, op.from, op.to), true, 'range');
       }
     }, scaled(wait, speed));
     return () => clearTimeout(t);
-  }, [script, cursor, done, speed, run, rebuild, doInsert, maxKeys, variant]);
+  }, [script, cursor, done, speed, run, rebuild, doInsert, doDelete, maxKeys, variant]);
 
   const leafGap = variant === 'bplus' ? 30 : 18;
   const { pos, width, height: h } = useMemo(() => layout(shown.root, leafGap), [shown, leafGap]);
@@ -301,12 +329,13 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
     return s;
   }, [step]);
   const visited = useMemo(() => new Set(step?.visited ?? []), [step]);
-  const split = new Set(step?.split ?? []);
+  const changed = new Set(step?.changed ?? []);
 
   const nodeState = (id: number) => {
     if (step?.overflow === id) return 'overflow';
+    if (step?.underflow === id) return 'underflow';
     if (step?.active === id) return 'active';
-    if (split.has(id)) return 'split';
+    if (changed.has(id)) return 'split';
     if (visited.has(id)) return 'visited';
     return 'idle';
   };
@@ -362,6 +391,20 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
           Step
         </Btn>
       </Group>
+      <Group label="Delete a value" color="pink">
+        <NumberField label="value to delete" value={deleteV} min={1} max={99} onChange={setDeleteV} />
+        <Btn onClick={() => doDelete(deleteV, tree, maxKeys)} disabled={cannotDelete} title={cannotDelete ? 'That value is not in the tree.' : undefined}>
+          Delete
+        </Btn>
+        <Btn
+          onClick={() => stepOp('delete')}
+          disabled={!inProgress('delete') && cannotDelete}
+          aria-label="Step through the delete"
+          title="One step at a time"
+        >
+          Step
+        </Btn>
+      </Group>
       {variant === 'bplus' && (
         <Group label="Range scan" color="amber">
           <NumberField label="range start" value={range[0]} min={1} max={99} onChange={(v) => { setRange([v, range[1]]); clear(); }} />
@@ -395,7 +438,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
   );
 
   const levels = height(shown.root);
-  const status = step ? step.text : `${keyCount(tree, variant)} keys in ${levels} ${levels === 1 ? 'level' : 'levels'}, up to ${maxKeys} keys per node. Search, insert${variant === 'bplus' ? ', scan a range' : ''} or step through.`;
+  const status = step ? step.text : `${keyCount(tree, variant)} keys in ${levels} ${levels === 1 ? 'level' : 'levels'}, up to ${maxKeys} keys per node. Search, insert, delete${variant === 'bplus' ? ', scan a range' : ''} or step through.`;
 
   const world = { w: width + 2 * PAD, h: h + 2 * PAD };
   const cam = cameraFor(overview ? null : focusFor(step, pos), world, vw);
@@ -441,6 +484,11 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
                   {s === 'overflow' && (
                     <text className="tv-tag tv-tag-over" x={p.w / 2} y={NH + 15} textAnchor="middle">
                       too full
+                    </text>
+                  )}
+                  {s === 'underflow' && (
+                    <text className="tv-tag tv-tag-over" x={p.w / 2} y={NH + 15} textAnchor="middle">
+                      too empty
                     </text>
                   )}
                 </g>
@@ -572,7 +620,8 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         .tv-visited .tv-box { stroke: var(--viz-blue); stroke-width: 2; }
         .tv-active .tv-box { stroke: var(--purple); stroke-width: 3; fill: color-mix(in oklab, var(--purple) 10%, var(--bg-raised)); }
         .tv-split .tv-box { stroke: var(--pink); stroke-width: 2; stroke-dasharray: 5 3; }
-        .tv-overflow .tv-box { stroke: var(--pink); stroke-width: 3; fill: color-mix(in oklab, var(--pink) 14%, var(--bg-raised)); }
+        .tv-overflow .tv-box, .tv-underflow .tv-box { stroke: var(--pink); stroke-width: 3; fill: color-mix(in oklab, var(--pink) 14%, var(--bg-raised)); }
+        .tv-underflow .tv-box { stroke-dasharray: 6 3; }
         .tv-tag { font: 700 11px var(--font); }
         .tv-tag-over { fill: var(--pink); }
         .tv-cmp .tv-mark { fill: color-mix(in oklab, var(--purple) 34%, var(--bg-raised)); }
@@ -581,6 +630,8 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
         .tv-found text, .tv-new text { fill: var(--green); }
         .tv-up .tv-mark { fill: color-mix(in oklab, var(--pink) 34%, var(--bg-raised)); }
         .tv-up text { fill: var(--pink); }
+        .tv-del .tv-mark { fill: color-mix(in oklab, var(--red) 30%, var(--bg-raised)); }
+        .tv-del text { fill: var(--red); text-decoration: line-through; }
         .tv-scan .tv-mark { fill: color-mix(in oklab, var(--amber) 34%, var(--bg-raised)); }
         .tv-scan text { fill: var(--amber); }
         .tv-edge { fill: none; stroke: var(--border-strong); stroke-width: 1.5; animation: tv-in var(--t) ease-out var(--move) backwards; transition: stroke var(--t); }

@@ -12,8 +12,11 @@ export type Variant = 'b' | 'bplus';
 export type TreeNode = { id: number; keys: number[]; children: TreeNode[] };
 export type Tree = { root: TreeNode; nextId: number };
 
-/** How one key is drawn. `cmp` is the key being compared, `up` a key just pushed into a parent. */
-export type KeyMark = 'cmp' | 'found' | 'new' | 'up' | 'scan';
+/**
+ * How one key is drawn. `cmp` is the key being compared, `up` a key just pushed into a parent,
+ * `new` a key that just arrived in a node, `del` the key about to be deleted.
+ */
+export type KeyMark = 'cmp' | 'found' | 'new' | 'up' | 'scan' | 'del';
 
 export type Step = {
   tree: Tree;
@@ -25,8 +28,10 @@ export type Step = {
   marks: Record<string, KeyMark>;
   /** A node holding one key more than it may. */
   overflow?: number;
-  /** Nodes produced by the latest split. */
-  split?: number[];
+  /** A node holding fewer keys than the minimum, after a delete. */
+  underflow?: number;
+  /** Nodes changed by the latest split, borrow or merge. */
+  changed?: number[];
   reads: number;
   comparisons: number;
   text: string;
@@ -103,6 +108,30 @@ export function suggestInsert(t: Tree, maxKeys: number, variant: Variant): numbe
     if (size > bestSize) [best, bestSize] = [v, size];
   }
   return best;
+}
+
+/**
+ * Fewest keys a node other than the root may hold. A split leaves both halves at or above this,
+ * so the starting tree is always valid. B+ leaves keep every key, so their halves are a key larger.
+ */
+export function minKeys(maxKeys: number, leaf: boolean, variant: Variant): number {
+  return leaf && variant === 'bplus' ? Math.ceil(maxKeys / 2) : Math.floor(maxKeys / 2);
+}
+
+/**
+ * Suggest a value to delete next: a key in a leaf that is already at the minimum, so pressing Delete
+ * usually shows a borrow or a merge. Deterministic for a given tree.
+ */
+export function suggestDelete(t: Tree, maxKeys: number, variant: Variant): number {
+  const ls = leaves(t.root).filter((l) => l.keys.length);
+  if (!ls.length) return 1;
+  const off = keyCount(t, variant) * 7;
+  for (let i = 0; i < ls.length; i++) {
+    const leaf = ls[(i + off) % ls.length];
+    if (leaf !== t.root && leaf.keys.length <= minKeys(maxKeys, true, variant)) return leaf.keys[leaf.keys.length >> 1];
+  }
+  const leaf = ls[off % ls.length];
+  return leaf.keys[0];
 }
 
 /** Child index to follow from an internal node. B+ separators send equal keys right. */
@@ -290,7 +319,7 @@ export function planInsert(t: Tree, v: number, maxKeys: number, variant: Variant
     else tail = ` The parent has room, so the insert is done. ${p.reads} disk reads.`;
     p.push({
       active: parent.id,
-      split: [node.id, right.id],
+      changed: [node.id, right.id],
       overflow: parentOver ? parent.id : undefined,
       marks: { [`${parent.id}:${at}`]: 'up' },
       text: how + tail,
@@ -299,6 +328,226 @@ export function planInsert(t: Tree, v: number, maxKeys: number, variant: Variant
     node = parent;
   }
   return { steps: p.steps, tree: work };
+}
+
+/**
+ * The plan and the tree after deleting v. Bottom up, like insert: remove the key from a leaf, and if
+ * the leaf drops below the minimum, borrow a key from a neighbour or merge with it. A merge takes a
+ * key out of the parent, which may then need fixing in turn. If the root loses its last key, the tree
+ * gets one level shorter.
+ */
+export function planDelete(t: Tree, v: number, maxKeys: number, variant: Variant): { steps: Step[]; tree: Tree } {
+  const work = cloneTree(t);
+  const p = new Planner(work);
+  p.tree = cloneTree(work);
+  const r = p.descend(v, variant, 'exact');
+  if (!r.hit) {
+    p.push({ active: r.leaf.id, marks: {}, text: `Reached a leaf without finding ${v}, so it is not in the tree. Nothing to delete.`, long: true });
+    return { steps: p.steps, tree: t };
+  }
+
+  const live = (id: number) => findNode(work.root, id)!;
+  const path = r.path.map((s) => ({ node: live(s.node.id), idx: s.idx }));
+  const done = () => ` The delete is done. ${p.reads} disk ${p.reads === 1 ? 'read' : 'reads'}.`;
+  const sizeNote = (n: TreeNode) => {
+    const min = minKeys(maxKeys, isLeaf(n), variant);
+    if (n === work.root) return ` This is the root, which may hold any number of keys, so the delete is done. ${p.reads} disk reads.`;
+    return n.keys.length < min
+      ? ` The leaf now holds ${n.keys.length} ${n.keys.length === 1 ? 'key' : 'keys'}, fewer than the minimum of ${min}. It must borrow a key from a neighbour or merge with one.`
+      : ` The leaf still holds ${n.keys.length} ${n.keys.length === 1 ? 'key' : 'keys'}, at least the minimum of ${min}.${done()}`;
+  };
+  let node: TreeNode;
+
+  if (!isLeaf(r.hit.node)) {
+    // Only a B-tree stops in an internal node. Swap in the predecessor so the removal happens in a leaf.
+    const inner = live(r.hit.node.id);
+    const i = r.hit.idx;
+    p.push({
+      active: inner.id,
+      marks: { [`${inner.id}:${i}`]: 'del' },
+      text: `Found ${v} in an internal node. It separates two children, so it cannot just be removed. Replace it with its predecessor, the largest key in the subtree to its left.`,
+      long: true,
+    });
+    path.push({ node: inner, idx: i });
+    let n = inner.children[i];
+    p.read(n, isLeaf(n) ? ', a leaf on the left' : ', the left child');
+    while (!isLeaf(n)) {
+      path.push({ node: n, idx: n.keys.length });
+      n = n.children[n.keys.length];
+      p.read(n, isLeaf(n) ? ', a leaf' : ', following the rightmost pointer');
+    }
+    const pred = n.keys[n.keys.length - 1];
+    p.push({ active: n.id, marks: { [`${n.id}:${n.keys.length - 1}`]: 'cmp' }, text: `The last key of this leaf, ${pred}, is the predecessor of ${v}.` });
+    inner.keys[i] = pred;
+    n.keys.pop();
+    node = n;
+    p.tree = cloneTree(work);
+    p.push({
+      active: node.id,
+      underflow: node.keys.length < minKeys(maxKeys, true, variant) ? node.id : undefined,
+      marks: { [`${inner.id}:${i}`]: 'up' },
+      text: `Move ${pred} up to replace ${v}. Keys stay in order, and the key now missing is in a leaf.${sizeNote(node)}`,
+      long: true,
+    });
+  } else {
+    node = live(r.leaf.id);
+    p.push({ active: node.id, marks: { [`${node.id}:${r.hit.idx}`]: 'del' }, text: `Found ${v} in the leaf. Remove it.` });
+    node.keys.splice(r.hit.idx, 1);
+    p.tree = cloneTree(work);
+    p.push({
+      active: node.id,
+      underflow: node !== work.root && node.keys.length < minKeys(maxKeys, true, variant) ? node.id : undefined,
+      marks: {},
+      text: `Removed ${v}.${sizeNote(node)}`,
+      long: true,
+    });
+  }
+
+  while (path.length && node.keys.length < minKeys(maxKeys, isLeaf(node), variant)) {
+    const { node: parent, idx } = path.pop()!;
+    const leaf = isLeaf(node);
+    const what = leaf ? 'leaf' : 'node';
+    const min = minKeys(maxKeys, leaf, variant);
+    const left = idx > 0 ? parent.children[idx - 1] : undefined;
+    const right = idx < parent.children.length - 1 ? parent.children[idx + 1] : undefined;
+
+    // Look at the neighbours that share this parent, left first. Each one is another disk read.
+    let donor: { sib: TreeNode; side: 'left' | 'right' } | undefined;
+    for (const [sib, side] of [[left, 'left'], [right, 'right']] as const) {
+      if (!sib) continue;
+      p.reads += 1;
+      p.visited.push(sib.id);
+      const spare = sib.keys.length > min;
+      p.push({
+        active: sib.id,
+        underflow: node.id,
+        marks: {},
+        text: `Read the ${side} neighbour ${fmt(sib.keys)}. ${
+          spare ? `It holds ${sib.keys.length} keys, more than the minimum of ${min}, so it can lend one.` : `It holds only ${sib.keys.length}, the minimum, so it has no key to spare.`
+        } Disk reads so far: ${p.reads}.`,
+      });
+      if (spare) {
+        donor = { sib, side };
+        break;
+      }
+    }
+
+    if (donor) {
+      const { sib, side } = donor;
+      const sep = side === 'left' ? idx - 1 : idx;
+      let text: string;
+      let arrived: number;
+      if (leaf && variant === 'bplus') {
+        // Leaves keep every key, so the key moves across and the separator is updated to match.
+        const k = side === 'left' ? sib.keys.pop()! : sib.keys.shift()!;
+        if (side === 'left') node.keys.unshift(k);
+        else node.keys.push(k);
+        parent.keys[sep] = side === 'left' ? k : sib.keys[0];
+        arrived = side === 'left' ? 0 : node.keys.length - 1;
+        text =
+          side === 'left'
+            ? `Borrow ${k}, the last key of the left leaf. This leaf now starts at ${k}, so the separator above is updated to a copy of ${k}.`
+            : `Borrow ${k}, the first key of the right leaf. The right leaf now starts at ${sib.keys[0]}, so the separator above is updated to a copy of ${sib.keys[0]}.`;
+      } else {
+        // Rotate through the parent: the separator comes down, the neighbour's nearest key goes up.
+        const down = parent.keys[sep];
+        const up = side === 'left' ? sib.keys.pop()! : sib.keys.shift()!;
+        if (side === 'left') {
+          node.keys.unshift(down);
+          if (!leaf) node.children.unshift(sib.children.pop()!);
+        } else {
+          node.keys.push(down);
+          if (!leaf) node.children.push(sib.children.shift()!);
+        }
+        parent.keys[sep] = up;
+        arrived = side === 'left' ? 0 : node.keys.length - 1;
+        text = `Borrow through the parent. ${down} comes down into this ${what}, and ${up}, the ${side === 'left' ? 'last' : 'first'} key of the ${side} neighbour, goes up to take its place. Every key stays in order.${
+          leaf ? '' : ` The neighbour's ${side === 'left' ? 'last' : 'first'} child pointer moves across with it.`
+        }`;
+      }
+      p.tree = cloneTree(work);
+      p.push({
+        active: parent.id,
+        changed: [sib.id, node.id],
+        marks: { [`${parent.id}:${sep}`]: 'up', [`${node.id}:${arrived}`]: 'new' },
+        text: text + done(),
+        long: true,
+      });
+      break;
+    }
+
+    // Neither neighbour can spare a key: merge with one, left if there is one.
+    const [a, b, sep] = left ? [left, node, idx - 1] : [node, right!, idx];
+    const s = parent.keys[sep];
+    const none = left && right ? 'Neither neighbour can spare a key' : 'The only neighbour cannot spare a key';
+    let text: string;
+    let sepAt = -1;
+    if (leaf && variant === 'bplus') {
+      a.keys.push(...b.keys);
+      text = `${none}, so merge this leaf with its ${left ? 'left' : 'right'} neighbour. The separator ${s} between them is no longer needed and is removed from the parent, and the leaf chain skips over the leaf that went away.`;
+    } else {
+      sepAt = a.keys.length;
+      a.keys.push(s, ...b.keys);
+      a.children.push(...b.children);
+      text = `${none}, so merge with the ${left ? 'left' : 'right'} one. The separator ${s} comes down from the parent, and the two ${leaf ? 'leaves' : 'nodes'} and ${s} become one ${what}.`;
+    }
+    parent.keys.splice(sep, 1);
+    parent.children.splice(sep + 1, 1);
+    p.tree = cloneTree(work);
+
+    const parentMin = minKeys(maxKeys, false, variant);
+    const emptyRoot = parent === work.root && parent.keys.length === 0;
+    const parentUnder = parent !== work.root && parent.keys.length < parentMin;
+    let tail: string;
+    if (emptyRoot) tail = ' The root just lost its only key.';
+    else if (parentUnder)
+      tail = ` The parent lost a key and now holds ${parent.keys.length}, fewer than the minimum of ${parentMin}, so it has to be fixed next.`;
+    else tail = ` The parent still has enough keys.${done()}`;
+    p.push({
+      active: parent.id,
+      changed: [a.id],
+      underflow: emptyRoot || parentUnder ? parent.id : undefined,
+      marks: sepAt >= 0 ? { [`${a.id}:${sepAt}`]: 'new' } : {},
+      text: text + tail,
+      long: true,
+    });
+
+    if (emptyRoot) {
+      work.root = a;
+      p.tree = cloneTree(work);
+      p.push({
+        active: a.id,
+        changed: [a.id],
+        marks: {},
+        text: `An empty root is not needed, so the merged node becomes the new root and the tree gets one level shorter. Trees shrink at the top, just as they grow there, so every leaf stays at the same depth.${done()}`,
+        long: true,
+      });
+      break;
+    }
+    node = parent;
+  }
+
+  // A B+ separator equal to a deleted key can stay: it only means "smaller on the left".
+  if (variant === 'bplus') {
+    const stale = findSeparator(work.root, v);
+    const last = p.steps[p.steps.length - 1];
+    if (stale) {
+      last.marks = { ...last.marks, [`${stale.node.id}:${stale.idx}`]: 'cmp' };
+      last.text += ` The separator ${v} higher up can stay. It no longer matches a key in a leaf, but it still routes every search the right way.`;
+    }
+  }
+  return { steps: p.steps, tree: work };
+}
+
+function findSeparator(n: TreeNode, v: number): { node: TreeNode; idx: number } | undefined {
+  if (isLeaf(n)) return undefined;
+  const idx = n.keys.indexOf(v);
+  if (idx >= 0) return { node: n, idx };
+  for (const c of n.children) {
+    const f = findSeparator(c, v);
+    if (f) return f;
+  }
+  return undefined;
 }
 
 function findNode(n: TreeNode, id: number): TreeNode | undefined {
