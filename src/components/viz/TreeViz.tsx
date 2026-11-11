@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Btn, Group, NumberField, Scroller, VizFrame } from './VizFrame';
 import { scaled, useSpeed } from './speed';
+import { listenForCases, widgetDomId, type CaseRequest } from './cases';
 import {
   contains,
   height,
@@ -36,6 +37,8 @@ export type TreeVizProps = {
   maxKeys?: number;
   /** Studio mode: hide chrome and loop through these operations, starting from a fresh tree each loop. */
   script?: TreeScriptOp[];
+  /** Name that `<TryCase widget="...">` buttons in the article use to load cases into this widget. */
+  caseId?: string;
 };
 
 /** Node sizes the reader can pick. Bigger nodes mean a wider, shorter tree. */
@@ -166,7 +169,7 @@ function defaultRange(t: Tree): [number, number] {
   return [a.keys[a.keys.length - 1], b.keys[0]];
 }
 
-export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initialMax = 3, script }: TreeVizProps & { variant: Variant }) {
+export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initialMax = 3, script, caseId }: TreeVizProps & { variant: Variant }) {
   const speed = useSpeed();
   const name = variant === 'b' ? 'B-tree' : 'B+ tree';
   const [maxKeys, setMaxKeys] = useState(initialMax);
@@ -243,6 +246,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
       // Commit right away. The plan replays how the tree got there.
       setTree(r.tree);
       run(r.steps, autoplay, 'insert');
+      return r.steps;
     },
     [run, variant],
   );
@@ -252,9 +256,72 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
       const r = planDelete(base, v, k, variant);
       setTree(r.tree);
       run(r.steps, autoplay, 'delete');
+      return r.steps;
     },
     [run, variant],
   );
+
+  /*
+   * A case loaded from a button in the article. It belongs to one plan, so it disappears by itself as
+   * soon as the reader starts another operation or presses Reset.
+   */
+  const [loaded, setLoaded] = useState<{ label: string; returnTo?: string; plan: Step[] } | null>(null);
+  const showCase = loaded && loaded.plan === steps ? loaded : null;
+
+  const loadCase = (r: CaseRequest) => {
+    const k = initialMax;
+    setMaxKeys(k);
+    let base = rebuild(k);
+    for (const s of r.setup) {
+      if (s.op === 'insert') base = planInsert(base, s.v, k, variant).tree;
+      else if (s.op === 'delete') base = planDelete(base, s.v, k, variant).tree;
+    }
+    setTree(base);
+    setTarget(defaultTarget(base));
+    setRange(defaultRange(base));
+    setInsertV(suggestInsert(base, k, variant));
+    setDeleteV(suggestDelete(base, k, variant));
+
+    const autoplay = r.mode === 'play';
+    const o = r.op;
+    let plan: Step[];
+    if (o.op === 'search') {
+      setTarget(o.v);
+      plan = planSearch(base, o.v, variant);
+      run(plan, autoplay, 'search');
+    } else if (o.op === 'insert') {
+      setInsertV(o.v);
+      plan = doInsert(o.v, base, k, autoplay);
+    } else if (o.op === 'delete') {
+      setDeleteV(o.v);
+      plan = doDelete(o.v, base, k, autoplay);
+    } else {
+      setRange([o.from, o.to]);
+      plan = planRange(base, o.from, o.to);
+      run(plan, autoplay, 'range');
+    }
+    setLoaded({ label: r.label, returnTo: r.returnTo, plan });
+
+    // Put keyboard focus on this operation's Step button, so Space or Enter moves the case along.
+    requestAnimationFrame(() => {
+      const frame = caseId ? document.getElementById(widgetDomId(caseId)) : null;
+      frame?.querySelector<HTMLButtonElement>(`[data-step="${o.op}"]`)?.focus({ preventScroll: true });
+    });
+  };
+  const loadCaseRef = useRef(loadCase);
+  loadCaseRef.current = loadCase;
+  useEffect(() => {
+    if (!caseId) return;
+    return listenForCases(caseId, (r) => loadCaseRef.current(r));
+  }, [caseId]);
+
+  const backToText = () => {
+    const el = loaded?.returnTo ? document.getElementById(loaded.returnTo) : null;
+    if (!el) return;
+    const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+    el.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
+  };
 
   /*
    * Suggest the next value only once an insert or delete has finished, so the field keeps showing the
@@ -373,7 +440,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
       <Group label="Search for a value" color="blue">
         <NumberField label="value to search for" value={target} min={1} max={99} onChange={(v) => { setTarget(v); clear(); }} />
         <Btn onClick={() => run(planSearch(tree, target, variant), true, 'search')}>Search</Btn>
-        <Btn onClick={() => stepOp('search')} aria-label="Step through the search" title="One step at a time">
+        <Btn data-step="search" onClick={() => stepOp('search')} aria-label="Step through the search" title="One step at a time">
           Step
         </Btn>
       </Group>
@@ -383,6 +450,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
           Insert
         </Btn>
         <Btn
+          data-step="insert"
           onClick={() => stepOp('insert')}
           disabled={!inProgress('insert') && cannotInsert}
           aria-label="Step through the insert"
@@ -397,6 +465,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
           Delete
         </Btn>
         <Btn
+          data-step="delete"
           onClick={() => stepOp('delete')}
           disabled={!inProgress('delete') && cannotDelete}
           aria-label="Step through the delete"
@@ -410,7 +479,7 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
           <NumberField label="range start" value={range[0]} min={1} max={99} onChange={(v) => { setRange([v, range[1]]); clear(); }} />
           <NumberField label="range end" value={range[1]} min={1} max={99} onChange={(v) => { setRange([range[0], v]); clear(); }} />
           <Btn onClick={() => run(planRange(tree, range[0], range[1]), true, 'range')}>Scan</Btn>
-          <Btn onClick={() => stepOp('range')} aria-label="Step through the range scan" title="One step at a time">
+          <Btn data-step="range" onClick={() => stepOp('range')} aria-label="Step through the range scan" title="One step at a time">
             Step
           </Btn>
         </Group>
@@ -498,8 +567,20 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
   );
 
   return (
-    <VizFrame label={`Interactive ${name}`} controls={controls} bare={!!script} minHeight={240}>
+    <VizFrame label={`Interactive ${name}`} controls={controls} bare={!!script} minHeight={240} id={caseId ? widgetDomId(caseId) : undefined}>
       <div className="tv-root" style={{ '--t': t, '--move': move, '--cam': `${Math.round(scaled(650, speed))}ms` } as CSSProperties}>
+        {showCase && !script && (
+          <div className="tv-case">
+            <span>
+              <span className="muted">Case from the text:</span> <strong>{showCase.label}</strong>
+            </span>
+            {showCase.returnTo && (
+              <button type="button" className="tv-zoom tv-back" onClick={backToText}>
+                <span aria-hidden="true">↑</span> Back to the text
+              </button>
+            )}
+          </div>
+        )}
         {/* Wide layout. A container query swaps it for the camera layout on narrow screens. */}
         <div className={script ? undefined : 'tv-wide'}>
           <Scroller label={name}>
@@ -612,6 +693,11 @@ export default function TreeViz({ variant, count = 14, seed = 11, maxKeys: initi
           background: var(--bg-panel); color: var(--text); font: 600 var(--fs-xs) var(--font); cursor: pointer;
         }
         .tv-zoom[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); }
+        .tv-case {
+          display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 0.5rem 1rem;
+          margin: 0 0 0.75rem; font-size: var(--fs-sm); text-align: center;
+        }
+        .tv-back { min-height: 2.25rem; }
         .tv-node { transition: transform var(--move) cubic-bezier(.4, 0, .2, 1); animation: tv-in var(--move) ease-out; }
         .tv-box { fill: var(--bg-raised); stroke: var(--border-strong); stroke-width: 1; transition: stroke var(--t), fill var(--t); }
         .tv-sep { stroke: var(--border-strong); stroke-width: 1; }

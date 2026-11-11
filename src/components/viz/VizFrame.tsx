@@ -15,12 +15,14 @@ type FrameProps = {
   bare?: boolean;
   /** Show the full screen button. On by default; turn off for small helpers such as the speed control. */
   fullscreen?: boolean;
+  /** DOM id for the figure, so buttons in the article can scroll to it. */
+  id?: string;
 };
 
 /** How long the mouse must be still in full screen before the toolbar and cursor hide. */
 const IDLE_MS = 2500;
 
-export function VizFrame({ label, controls, children, caption, minHeight = 220, bare = false, fullscreen = true }: FrameProps) {
+export function VizFrame({ label, controls, children, caption, minHeight = 220, bare = false, fullscreen = true, id }: FrameProps) {
   const ref = useRef<HTMLElement>(null);
   const fs = useFullscreen(ref);
   const [hideControls, setHideControls] = useState(false);
@@ -61,7 +63,7 @@ export function VizFrame({ label, controls, children, caption, minHeight = 220, 
     .join(' ');
 
   return (
-    <figure ref={ref} className={classes} aria-label={label} onPointerMove={fs.active ? wake : undefined}>
+    <figure ref={ref} id={id} className={classes} aria-label={label} onPointerMove={fs.active ? wake : undefined}>
       {showButton && (
         <div className="viz-toolbar">
           {fs.active && (
