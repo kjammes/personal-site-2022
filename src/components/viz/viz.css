@@ -63,8 +63,17 @@
   font-weight: 600;
   cursor: pointer;
 }
-.viz-btn:hover:not(:disabled) {
+.viz-btn {
+  transition:
+    background-color var(--hover-t) var(--hover-ease),
+    border-color var(--hover-t) var(--hover-ease),
+    box-shadow var(--hover-t) var(--hover-ease);
+}
+/* On hover a 1px ring in the border colour makes the button look 1px larger on each side.
+ * A shadow is used so the button's real size, and the layout around it, stays the same. */
+.viz-btn:hover:not(:disabled):not([aria-pressed='true']) {
   background: color-mix(in oklab, var(--c, var(--muted)) 26%, var(--bg-panel));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--c, var(--muted)) 70%, transparent);
 }
 .viz-btn:disabled {
   opacity: 0.45;
@@ -75,6 +84,31 @@
   color: var(--bg);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+/* A selected button keeps its solid fill on hover and turns lighter, so its dark text gets more contrast. */
+.viz-btn[aria-pressed='true']:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--c, var(--muted)) 80%, white);
+  border-color: color-mix(in oklab, var(--c, var(--muted)) 80%, white);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--c, var(--muted)) 80%, white);
+}
+/* The zoom toggles in BinarySearch and TreeViz get the same hover as .viz-btn. */
+.bs-zoom,
+.tv-zoom {
+  transition:
+    background-color var(--hover-t) var(--hover-ease),
+    border-color var(--hover-t) var(--hover-ease),
+    box-shadow var(--hover-t) var(--hover-ease);
+}
+.bs-zoom:hover,
+.tv-zoom:hover {
+  background: var(--bg-raised);
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+.bs-zoom[aria-pressed='true']:hover,
+.tv-zoom[aria-pressed='true']:hover {
+  /* Red text on the lighter hover grey is only 3.9:1, so keep the darker panel (4.8:1). */
+  background: var(--bg-panel);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 .viz-input {
   width: 4.5rem;
@@ -139,8 +173,22 @@
   --c: var(--muted);
   width: 100%;
 }
-.viz-speed .viz-btn[aria-pressed='true'] {
+/* The selected speed uses the site's solid red button colours: white text on a darker red
+ * (5.0:1), and an even darker red on hover (7.6:1). White on the bright red is only 3.6:1. */
+.viz-speed .viz-btn[aria-pressed='true'],
+.viz-fs-speed .viz-btn[aria-pressed='true'] {
   --c: var(--accent);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: #fff;
+  /* The solid red fill already marks the selected speed, so it needs no underline. */
+  text-decoration: none;
+}
+.viz-speed .viz-btn[aria-pressed='true']:hover,
+.viz-fs-speed .viz-btn[aria-pressed='true']:hover {
+  background: var(--accent-stronger);
+  border-color: var(--accent-stronger);
+  box-shadow: 0 0 0 1px var(--accent-stronger);
 }
 
 /* Studio: large type for 1080p and 4K recordings. */
@@ -174,9 +222,6 @@
 .viz-fs-speed {
   display: flex;
   gap: 0.25rem;
-}
-.viz-fs-speed .viz-btn[aria-pressed='true'] {
-  --c: var(--accent);
 }
 
 /* Full screen: the frame fills the screen and the drawing grows to fit it. */
@@ -233,7 +278,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .viz-toolbar {
+  .viz-toolbar,
+  .viz-btn,
+  .bs-zoom,
+  .tv-zoom {
     transition: none;
   }
 }
@@ -249,7 +297,9 @@
   .viz-input {
     border: 1px solid ButtonText;
   }
-  .viz-btn[aria-pressed='true'] {
+  .viz-btn[aria-pressed='true'],
+  .viz-speed .viz-btn[aria-pressed='true'],
+  .viz-fs-speed .viz-btn[aria-pressed='true'] {
     forced-color-adjust: none;
     background: Highlight;
     color: HighlightText;
